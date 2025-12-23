@@ -19,8 +19,10 @@ class EmployeeFormView extends GetView<StaffController> {
     String selectedRole = existing?.role ?? roles.first;
     final phone = TextEditingController(text: existing?.phone ?? '');
     final email = TextEditingController(text: existing?.email ?? '');
-    final password = TextEditingController(text: existing?.password ?? '');
-    final commission = TextEditingController(text: existing?.commission?.toString() ?? '');
+    final pin = TextEditingController(text: existing?.pin ?? '');
+    final commission = TextEditingController(
+      text: existing?.commission?.toString() ?? '',
+    );
     var status = existing?.status ?? EmployeeStatus.active;
 
     void save() {
@@ -35,7 +37,7 @@ class EmployeeFormView extends GetView<StaffController> {
           role: selectedRole,
           phone: phone.text.trim(),
           email: email.text.trim(),
-          password: password.text.trim().isEmpty ? existing?.password : password.text.trim(),
+          pin: pin.text.trim().isEmpty ? existing?.pin : pin.text.trim(),
           joinDate: existing?.joinDate ?? DateTime.now(),
           commission: double.tryParse(commission.text.trim()),
           status: status,
@@ -53,7 +55,7 @@ class EmployeeFormView extends GetView<StaffController> {
             name.text.trim().isNotEmpty ||
             phone.text.trim().isNotEmpty ||
             email.text.trim().isNotEmpty ||
-            password.text.trim().isNotEmpty ||
+            pin.text.trim().isNotEmpty ||
             commission.text.trim().isNotEmpty ||
             selectedRole != (existing?.role ?? roles.first);
         if (!dirty) return true;
@@ -73,10 +75,9 @@ class EmployeeFormView extends GetView<StaffController> {
               decoration: const InputDecoration(labelText: 'Role *'),
               dropdownColor: AppColors.grey800,
               items: roles
-                  .map((r) => DropdownMenuItem<String>(
-                        value: r,
-                        child: Text(r),
-                      ))
+                  .map(
+                    (r) => DropdownMenuItem<String>(value: r, child: Text(r)),
+                  )
                   .toList(),
               onChanged: (value) {
                 if (value != null) selectedRole = value;
@@ -94,11 +95,11 @@ class EmployeeFormView extends GetView<StaffController> {
             ),
             const SizedBox(height: AppDimens.spacingMd),
             TextField(
-              controller: password,
+              controller: pin,
               obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'Password (Opsional)',
-                helperText: 'Kosongkan jika tidak ingin mengubah password',
+                labelText: 'PIN (Opsional)',
+                helperText: 'Kosongkan jika tidak ingin mengubah PIN',
               ),
             ),
             const SizedBox(height: AppDimens.spacingMd),
@@ -113,8 +114,14 @@ class EmployeeFormView extends GetView<StaffController> {
               decoration: const InputDecoration(labelText: 'Status'),
               dropdownColor: AppColors.grey800,
               items: const [
-                DropdownMenuItem(value: EmployeeStatus.active, child: Text('Aktif')),
-                DropdownMenuItem(value: EmployeeStatus.inactive, child: Text('Nonaktif')),
+                DropdownMenuItem(
+                  value: EmployeeStatus.active,
+                  child: Text('Aktif'),
+                ),
+                DropdownMenuItem(
+                  value: EmployeeStatus.inactive,
+                  child: Text('Nonaktif'),
+                ),
               ],
               onChanged: (v) {
                 if (v != null) status = v;
@@ -128,7 +135,9 @@ class EmployeeFormView extends GetView<StaffController> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.orange500,
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: AppDimens.spacingMd),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppDimens.spacingMd,
+                  ),
                 ),
                 child: const Text('Simpan'),
               ),
@@ -144,15 +153,26 @@ Future<bool> _confirmDiscard() async {
   final result = await Get.dialog<bool>(
     AlertDialog(
       backgroundColor: AppColors.grey800,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimens.cornerRadius)),
-      title: const Text('Batalkan perubahan?', style: TextStyle(color: Colors.white)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+      ),
+      title: const Text(
+        'Batalkan perubahan?',
+        style: TextStyle(color: Colors.white),
+      ),
       content: const Text(
         'Perubahan belum disimpan. Yakin kembali?',
         style: TextStyle(color: Colors.white70),
       ),
       actions: [
-        TextButton(onPressed: () => Get.back(result: false), child: const Text('Lanjutkan')),
-        TextButton(onPressed: () => Get.back(result: true), child: const Text('Buang')),
+        TextButton(
+          onPressed: () => Get.back(result: false),
+          child: const Text('Lanjutkan'),
+        ),
+        TextButton(
+          onPressed: () => Get.back(result: true),
+          child: const Text('Buang'),
+        ),
       ],
     ),
   );

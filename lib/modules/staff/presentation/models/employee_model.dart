@@ -10,7 +10,7 @@ class Employee {
     required this.joinDate,
     this.status = EmployeeStatus.active,
     this.commission,
-    this.password,
+    this.pin,
   });
 
   final String id;
@@ -21,5 +21,5 @@ class Employee {
   final DateTime joinDate;
   final EmployeeStatus status;
   final double? commission;
-  final String? password;
+  final String? pin;
 }

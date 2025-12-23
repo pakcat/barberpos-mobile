@@ -22,7 +22,7 @@ class PushNotificationService extends GetxService {
   final NetworkService? _network;
 
   Future<void> init() async {
-    if (_config.backend != BackendMode.firebase && _config.backend != BackendMode.rest) return;
+    if (_config.backend != BackendMode.rest) return;
     final settings = await _messaging.requestPermission(
       alert: true,
       badge: true,

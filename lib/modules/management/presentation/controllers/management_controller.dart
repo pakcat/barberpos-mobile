@@ -1,46 +1,28 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/network/network_service.dart';
-import '../models/management_models.dart';
-import '../../data/repositories/management_repository.dart';
+import '../../data/datasources/management_remote_data_source.dart';
 import '../../data/entities/category_entity.dart';
 import '../../data/entities/customer_entity.dart';
-import '../../data/datasources/customer_firestore_data_source.dart';
-import '../../data/datasources/category_firestore_data_source.dart';
-import '../../data/datasources/management_remote_data_source.dart';
+import '../../data/repositories/management_repository.dart';
+import '../models/management_models.dart';
 
 class ManagementController extends GetxController {
   ManagementController({
     ManagementRepository? repository,
-    CustomerFirestoreDataSource? firebase,
-    CategoryFirestoreDataSource? categoryRemote,
     ManagementRemoteDataSource? restRemote,
     AppConfig? config,
     NetworkService? network,
-    FirebaseFirestore? firestore,
   })  : repo = repository ?? Get.find<ManagementRepository>(),
         _config = config ?? Get.find<AppConfig>(),
-        _customerRemote = firebase ??
-            ((config ?? Get.find<AppConfig>()).backend == BackendMode.firebase
-                ? CustomerFirestoreDataSource(firestore ?? FirebaseFirestore.instance)
-                : null),
-        _categoryRemote = categoryRemote ??
-            ((config ?? Get.find<AppConfig>()).backend == BackendMode.firebase
-                ? CategoryFirestoreDataSource(firestore ?? FirebaseFirestore.instance)
-                : null),
         _rest = restRemote ??
-            ((config ?? Get.find<AppConfig>()).backend == BackendMode.rest
-                ? ManagementRemoteDataSource((network ?? Get.find<NetworkService>()).dio)
-                : null);
+            ManagementRemoteDataSource((network ?? Get.find<NetworkService>()).dio);
 
   final ManagementRepository repo;
   final AppConfig _config;
-  final CustomerFirestoreDataSource? _customerRemote;
-  final CategoryFirestoreDataSource? _categoryRemote;
-  final ManagementRemoteDataSource? _rest;
+  final ManagementRemoteDataSource _rest;
 
   final RxList<CategoryItem> categories = <CategoryItem>[].obs;
   final RxList<CustomerItem> customers = <CustomerItem>[].obs;
@@ -54,55 +36,29 @@ class ManagementController extends GetxController {
 
   Future<void> _loadData() async {
     loading.value = true;
-    final rest = _rest;
-    if (_config.backend == BackendMode.rest && rest != null) {
-      try {
-        final remoteCats = await rest.fetchCategories();
+    try {
+      if (_config.backend == BackendMode.rest) {
+        final remoteCats = await _rest.fetchCategories();
         await repo.replaceCategories(remoteCats);
         categories.assignAll(remoteCats.map(_mapCategory));
-      } catch (_) {
-        final cats = await repo.getCategories();
-        categories.assignAll(cats.map(_mapCategory));
-      }
-      try {
-        final remoteCust = await rest.fetchCustomers();
+
+        final remoteCust = await _rest.fetchCustomers();
         await repo.replaceCustomers(remoteCust);
         customers.assignAll(remoteCust.map(_mapCustomer));
-      } catch (_) {
+      } else {
+        final cats = await repo.getCategories();
+        categories.assignAll(cats.map(_mapCategory));
         final cust = await repo.getCustomers();
         customers.assignAll(cust.map(_mapCustomer));
       }
-      loading.value = false;
-      return;
-    }
-    final customerRemote = _customerRemote;
-    if (_config.backend == BackendMode.firebase && customerRemote != null) {
-      try {
-        final remoteCust = await customerRemote.fetchAll();
-        await repo.replaceCustomers(remoteCust);
-        customers.assignAll(remoteCust.map(_mapCustomer));
-      } catch (_) {
-        final cust = await repo.getCustomers();
-        customers.assignAll(cust.map(_mapCustomer));
-      }
-      try {
-        final categoryRemote = _categoryRemote;
-        if (categoryRemote != null) {
-          final remoteCats = await categoryRemote.fetchAll();
-          await repo.replaceCategories(remoteCats);
-          categories.assignAll(remoteCats.map(_mapCategory));
-        }
-      } catch (_) {
-        final cats = await repo.getCategories();
-        categories.assignAll(cats.map(_mapCategory));
-      }
-    } else {
+    } catch (_) {
       final cats = await repo.getCategories();
       categories.assignAll(cats.map(_mapCategory));
       final cust = await repo.getCustomers();
       customers.assignAll(cust.map(_mapCustomer));
+    } finally {
+      loading.value = false;
     }
-    loading.value = false;
   }
 
   CategoryItem? getCategoryById(String id) =>
@@ -119,13 +75,8 @@ class ManagementController extends GetxController {
       categories.add(item);
     }
     final entity = _toCategoryEntity(item);
-    final categoryRemote = _categoryRemote;
-    final rest = _rest;
-    if (_config.backend == BackendMode.rest && rest != null) {
-      rest.upsertCategory(entity);
-    }
-    if (_config.backend == BackendMode.firebase && categoryRemote != null) {
-      categoryRemote.upsert(entity);
+    if (_config.backend == BackendMode.rest) {
+      _rest.upsertCategory(entity);
     }
     repo.upsertCategory(entity);
   }
@@ -136,13 +87,8 @@ class ManagementController extends GetxController {
     if (existing != null) {
       final parsedId = int.tryParse(id) ?? existing.id.hashCode;
       repo.deleteCategory(parsedId);
-      final categoryRemote = _categoryRemote;
-      final rest = _rest;
-      if (_config.backend == BackendMode.rest && rest != null) {
-        rest.deleteCategory(parsedId);
-      }
-      if (_config.backend == BackendMode.firebase && categoryRemote != null) {
-        categoryRemote.delete(_toCategoryEntity(existing));
+      if (_config.backend == BackendMode.rest) {
+        _rest.deleteCategory(parsedId);
       }
     }
   }
@@ -156,13 +102,8 @@ class ManagementController extends GetxController {
     }
     customers.refresh();
     final entity = _toCustomerEntity(item);
-    final customerRemote = _customerRemote;
-    final rest = _rest;
-    if (_config.backend == BackendMode.rest && rest != null) {
-      rest.upsertCustomer(entity);
-    }
-    if (_config.backend == BackendMode.firebase && customerRemote != null) {
-      customerRemote.upsert(entity);
+    if (_config.backend == BackendMode.rest) {
+      _rest.upsertCustomer(entity);
     }
     repo.upsertCustomer(entity);
   }
@@ -172,14 +113,10 @@ class ManagementController extends GetxController {
     customers.removeWhere((c) => c.id == id);
     customers.refresh();
     if (existing != null) {
-      repo.deleteCustomer(int.tryParse(id) ?? existing.id.hashCode);
-      final customerRemote = _customerRemote;
-      final rest = _rest;
-      if (_config.backend == BackendMode.rest && rest != null) {
-        rest.deleteCustomer(int.tryParse(id) ?? existing.id.hashCode);
-      }
-      if (_config.backend == BackendMode.firebase && customerRemote != null) {
-        customerRemote.delete(_toCustomerEntity(existing));
+      final parsedId = int.tryParse(id) ?? existing.id.hashCode;
+      repo.deleteCustomer(parsedId);
+      if (_config.backend == BackendMode.rest) {
+        _rest.deleteCustomer(parsedId);
       }
     }
   }
@@ -209,4 +146,3 @@ class ManagementController extends GetxController {
     return entity;
   }
 }
-

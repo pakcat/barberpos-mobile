@@ -29,13 +29,17 @@ class AuthController extends GetxController {
     loading.value = true;
     error.value = null;
     final success = await auth.login(
-      usernameController.text.trim(),
+      usernameController.text.trim().toLowerCase(),
       passwordController.text,
       staffLogin: staffLogin,
     );
     loading.value = false;
     if (!success) {
-      error.value = 'Login gagal, periksa kembali data Anda.';
+      final msg = auth.lastError ?? 'Login gagal, periksa kembali data Anda.';
+      error.value = msg;
+      if (!Get.testMode) {
+        Get.snackbar('Login gagal', msg, snackPosition: SnackPosition.BOTTOM);
+      }
       return;
     }
     final target = staffLogin ? Routes.closing : Routes.home;
@@ -46,12 +50,16 @@ class AuthController extends GetxController {
     loading.value = true;
     error.value = null;
     final email = usernameController.text.trim().isNotEmpty
-        ? usernameController.text.trim()
+        ? usernameController.text.trim().toLowerCase()
         : 'user${DateTime.now().millisecondsSinceEpoch}@google.com';
     final success = await auth.loginWithGoogle(email: email);
     loading.value = false;
     if (!success) {
-      error.value = 'Login Google gagal, coba lagi.';
+      final msg = auth.lastError ?? 'Login Google gagal, coba lagi.';
+      error.value = msg;
+      if (!Get.testMode) {
+        Get.snackbar('Login Google', msg, snackPosition: SnackPosition.BOTTOM);
+      }
       return;
     }
     final needsProfile = await _needsProfileCompletion();

@@ -43,7 +43,7 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
       actions: [
         IconButton(
           icon: const Icon(Icons.share_rounded),
-          onPressed: () => Get.snackbar('Bagikan', 'Struk siap dibagikan (mock).'),
+          onPressed: () => Get.snackbar('Bagikan', 'Struk siap dibagikan.'),
         ),
       ],
       body: Column(

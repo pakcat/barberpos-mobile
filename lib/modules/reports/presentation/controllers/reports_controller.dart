@@ -1,10 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../transactions/data/entities/transaction_entity.dart';
 import '../../../transactions/data/repositories/transaction_repository.dart';
-import '../../data/datasources/reports_firestore_data_source.dart';
 import '../../data/entities/finance_entry_entity.dart';
 import '../../data/repositories/reports_repository.dart';
 import '../models/report_models.dart';
@@ -13,25 +10,13 @@ class ReportsController extends GetxController {
   ReportsController({
     ReportsRepository? repo,
     TransactionRepository? txRepo,
-    ReportsFirestoreDataSource? firebase,
-    AppConfig? config,
-    FirebaseFirestore? firestore,
   })  : repo = repo ?? Get.find<ReportsRepository>(),
-        _txRepo = txRepo ?? Get.find<TransactionRepository>(),
-        _config = config ?? Get.find<AppConfig>(),
-        _firebase = firebase ??
-            ((config ?? Get.find<AppConfig>()).backend == BackendMode.firebase
-                ? ReportsFirestoreDataSource(firestore ?? FirebaseFirestore.instance)
-                : null);
+        _txRepo = txRepo ?? Get.find<TransactionRepository>();
 
   final ReportsRepository repo;
   final TransactionRepository _txRepo;
-  final AppConfig _config;
-  final ReportsFirestoreDataSource? _firebase;
   final RxList<FinanceEntry> entries = <FinanceEntry>[].obs;
   final RxList<StylistPerformance> stylistReports = <StylistPerformance>[].obs;
-
-  bool get _useFirebase => _config.backend == BackendMode.firebase && _firebase != null;
 
   int get totalRevenue => entries
       .where((e) => e.type == EntryType.revenue)
@@ -55,23 +40,15 @@ class ReportsController extends GetxController {
   }
 
   @override
-  @override
   Future<void> refresh() => _load();
 
   Future<void> _load() async {
     loading.value = true;
-    if (_useFirebase) {
-      try {
-        final remote = await _firebase!.fetchAll();
-        await repo.replaceAll(remote);
-        entries.assignAll(remote.map(_map));
-      } catch (_) {
-        final data = await repo.getAll();
-        entries.assignAll(data.map(_map));
-      }
-    } else {
+    try {
       final data = await repo.getAll();
       entries.assignAll(data.map(_map));
+    } catch (_) {
+      entries.clear();
     }
     await _loadStylistReport();
     loading.value = false;
@@ -130,11 +107,7 @@ class ReportsController extends GetxController {
 
   void addEntry(FinanceEntry entry) {
     entries.add(entry);
-    final entity = _toEntity(entry);
-    if (_useFirebase) {
-      _firebase!.upsert(entity);
-    }
-    repo.upsert(entity);
+    repo.upsert(_toEntity(entry));
   }
 
   Future<String> exportCsv() async {

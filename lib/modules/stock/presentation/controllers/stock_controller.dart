@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/config/app_config.dart';
@@ -6,7 +5,6 @@ import '../../../../core/network/network_service.dart';
 import '../../../cashier/presentation/controllers/cashier_controller.dart';
 import '../../../product/data/repositories/product_repository.dart';
 import '../../../product/presentation/controllers/product_controller.dart';
-import '../../data/datasources/stock_history_firestore_data_source.dart';
 import '../../data/datasources/stock_remote_data_source.dart';
 import '../../data/entities/stock_entity.dart';
 import '../../data/repositories/stock_repository.dart';
@@ -16,27 +14,19 @@ class StockController extends GetxController {
   StockController({
     StockRepository? repository,
     ProductRepository? productRepository,
-    StockHistoryFirestoreDataSource? historyFirebase,
     StockRemoteDataSource? restRemote,
     AppConfig? config,
-    FirebaseFirestore? firestore,
+    NetworkService? network,
   })  : repo = repository ?? Get.find<StockRepository>(),
         _productRepo = productRepository ?? Get.find<ProductRepository>(),
         _config = config ?? Get.find<AppConfig>(),
-        _historyFirebase = historyFirebase ??
-            ((config ?? Get.find<AppConfig>()).backend == BackendMode.firebase
-                ? StockHistoryFirestoreDataSource(firestore ?? FirebaseFirestore.instance)
-                : null),
         _rest = restRemote ??
-            ((config ?? Get.find<AppConfig>()).backend == BackendMode.rest
-                ? StockRemoteDataSource(Get.find<NetworkService>().dio)
-                : null);
+            StockRemoteDataSource((network ?? Get.find<NetworkService>()).dio);
 
   final StockRepository repo;
   final ProductRepository _productRepo;
   final AppConfig _config;
-  final StockHistoryFirestoreDataSource? _historyFirebase;
-  final StockRemoteDataSource? _rest;
+  final StockRemoteDataSource _rest;
 
   final RxList<StockItem> products = <StockItem>[].obs;
 
@@ -54,10 +44,9 @@ class StockController extends GetxController {
   }
 
   Future<void> _load() async {
-    final rest = _rest;
-    if (_config.backend == BackendMode.rest && rest != null) {
+    if (_config.backend == BackendMode.rest) {
       try {
-        final data = await rest.fetchAll();
+        final data = await _rest.fetchAll();
         await repo.replaceAll(data);
         products.assignAll(data.map(_map));
         if (products.isNotEmpty && selected.value == null) {
@@ -100,7 +89,6 @@ class StockController extends GetxController {
     if (!canSubmit) return;
     final item = selected.value;
     if (item == null) return;
-    final rest = _rest;
     final qty = int.tryParse(adjustmentValue.value) ?? 0;
     if (qty < 0) return;
     final type = adjustmentType.value!;
@@ -108,9 +96,9 @@ class StockController extends GetxController {
     int newStock = item.stock;
     int delta = 0;
 
-    if (_config.backend == BackendMode.rest && rest != null) {
+    if (_config.backend == BackendMode.rest) {
       try {
-        final adjusted = await rest.adjust(
+        final adjusted = await _rest.adjust(
           stockId: int.tryParse(item.id) ?? item.id.hashCode,
           change: qty,
           type: type.name,
@@ -119,7 +107,7 @@ class StockController extends GetxController {
         );
         newStock = adjusted.stock;
         delta = qty;
-        final latest = await rest.fetchAll();
+        final latest = await _rest.fetchAll();
         await repo.replaceAll(latest);
         products.assignAll(latest.map(_map));
       } catch (_) {
@@ -127,7 +115,7 @@ class StockController extends GetxController {
       }
     }
 
-    if (!(_config.backend == BackendMode.rest && _rest != null)) {
+    if (_config.backend != BackendMode.rest) {
       final product = await _productRepo.getById(productId);
       if (product == null) return;
 
@@ -151,7 +139,6 @@ class StockController extends GetxController {
       await _load();
     }
 
-    // Refresh other modules that rely on product data
     if (Get.isRegistered<ProductController>()) {
       await Get.find<ProductController>().refreshRemote();
     }
@@ -170,30 +157,19 @@ class StockController extends GetxController {
       ),
     );
 
-    if (_config.backend == BackendMode.firebase && _historyFirebase != null) {
-      await _historyFirebase.appendHistory(
-        productId: productId,
-        change: delta,
-        remaining: newStock,
-        type: type.name,
-        note: note.value.isEmpty ? null : note.value,
-      );
-    }
-
-    // reset form state
     adjustmentType.value = null;
     adjustmentValue.value = '';
     note.value = '';
   }
 
   StockItem _map(StockEntity e) => StockItem(
-    id: e.id.toString(),
-    name: e.name,
-    category: e.category,
-    image: e.image,
-    stock: e.stock,
-    transactions: e.transactions,
-  );
+        id: e.id.toString(),
+        name: e.name,
+        category: e.category,
+        image: e.image,
+        stock: e.stock,
+        transactions: e.transactions,
+      );
 
   Future<void> refreshRemote() => _load();
 
@@ -202,11 +178,10 @@ class StockController extends GetxController {
     final current = selected.value;
     if (current == null) return;
     final productId = int.tryParse(current.id) ?? current.id.hashCode;
-    final rest = _rest;
 
-    if (_config.backend == BackendMode.rest && rest != null) {
+    if (_config.backend == BackendMode.rest) {
       try {
-        final remote = await rest.history(productId, limit: 50);
+        final remote = await _rest.history(productId, limit: 50);
         histories.assignAll(
           remote.map(
             (h) => StockHistory(
@@ -220,24 +195,6 @@ class StockController extends GetxController {
         );
         return;
       } catch (_) {}
-    }
-
-    if (_config.backend != BackendMode.firebase || _historyFirebase == null) return;
-    try {
-      final remote = await _historyFirebase.fetchHistory(productId: productId, limit: 50);
-      histories.assignAll(
-        remote.map(
-          (h) => StockHistory(
-            date: h.createdAt.toIso8601String(),
-            status: _statusLabel(_typeFromString(h.type), h.change),
-            quantity: h.change,
-            remaining: h.remaining,
-            type: _typeFromString(h.type),
-          ),
-        ),
-      );
-    } catch (_) {
-      // ignore history load errors
     }
   }
 

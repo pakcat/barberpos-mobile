@@ -34,28 +34,50 @@ class MembershipRepository {
   Future<int> getUsedQuota() async {
     if (remote != null) {
       try {
-        final quota = await remote!.fetchUsedQuota();
-        await setUsedQuota(quota);
-        return quota;
+        final state = await remote!.fetchState();
+        await setState(
+          MembershipStateEntity()
+            ..id = 1
+            ..usedQuota = state.usedQuota,
+        );
+        return state.usedQuota;
       } catch (_) {}
     }
     final state = await _isar.membershipStateEntitys.get(1);
     return state?.usedQuota ?? 0;
   }
 
-  Future<void> setUsedQuota(int value) async {
-    await _isar.writeTxn(() async {
-      await _isar.membershipStateEntitys.put(
-        MembershipStateEntity()
+  Future<MembershipStateEntity?> fetchState() async {
+    if (remote != null) {
+      try {
+        final state = await remote!.fetchState();
+        final entity = MembershipStateEntity()
           ..id = 1
-          ..usedQuota = value,
-      );
-    });
+          ..usedQuota = state.usedQuota;
+        await setState(entity);
+        return entity;
+      } catch (_) {}
+    }
+    return _isar.membershipStateEntitys.get(1);
+  }
+
+  Future<void> setUsedQuota(int value) async {
+    await setState(
+      MembershipStateEntity()
+        ..id = 1
+        ..usedQuota = value,
+    );
     if (remote != null) {
       try {
         await remote!.setUsedQuota(value);
       } catch (_) {}
     }
+  }
+
+  Future<void> setState(MembershipStateEntity state) async {
+    await _isar.writeTxn(() async {
+      await _isar.membershipStateEntitys.put(state);
+    });
   }
 
   Future<void> _replaceTopups(Iterable<MembershipTopupEntity> items) async {

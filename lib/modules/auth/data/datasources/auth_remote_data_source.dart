@@ -18,6 +18,24 @@ class AuthRemoteDataSource {
     return AuthResponseDto.fromJson(res.data ?? <String, dynamic>{});
   }
 
+  Future<AuthResponseDto> loginStaff({
+    String? phone,
+    String? email,
+    required String pin,
+    String? name,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/auth/staff',
+      data: {
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        if (email != null && email.isNotEmpty) 'email': email,
+        'pin': pin,
+        if (name != null) 'name': name,
+      },
+    );
+    return AuthResponseDto.fromJson(res.data ?? <String, dynamic>{});
+  }
+
   Future<AuthResponseDto> loginWithGoogle({
     required String idToken,
     required String email,
@@ -68,8 +86,14 @@ class AuthRemoteDataSource {
     await _dio.post('/auth/forgot-password', data: {'email': email});
   }
 
-  Future<void> resetPassword({required String token, required String password}) async {
-    await _dio.post('/auth/reset-password', data: {'token': token, 'password': password});
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+  }) async {
+    await _dio.post(
+      '/auth/reset-password',
+      data: {'token': token, 'password': password},
+    );
   }
 
   Future<AuthResponseDto> refreshToken(String refreshToken) async {

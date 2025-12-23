@@ -17,11 +17,9 @@ class CartItem {
 }
 
 class Stylist {
-  const Stylist({
-    required this.name,
-    required this.avatar,
-  });
+  const Stylist({required this.id, required this.name, required this.avatar});
 
+  final int? id;
   final String name;
   final String avatar;
 }

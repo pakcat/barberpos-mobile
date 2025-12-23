@@ -1,4 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -8,16 +7,15 @@ import 'core/config/app_config.dart';
 import 'core/database/local_database.dart';
 import 'core/values/app_strings.dart';
 import 'core/values/app_themes.dart';
-import 'firebase_options.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final backend = _backendFromEnvironment();
-  if (backend == BackendMode.firebase) {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  }
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final mediaQuery = WidgetsBinding.instance.platformDispatcher.views.first.physicalSize;
   final shortestSide = mediaQuery.shortestSide;
   if (shortestSide >= 1300) {
@@ -43,7 +41,6 @@ Future<void> main() async {
     connectTimeout: AppConfig.dev.connectTimeout,
     receiveTimeout: AppConfig.dev.receiveTimeout,
     sendTimeout: AppConfig.dev.sendTimeout,
-    firebaseOptions: backend == BackendMode.firebase ? {} : null,
   );
   Get.put<AppConfig>(config, permanent: true);
   Get.put<LocalDatabase>(db, permanent: true);
@@ -68,12 +65,5 @@ class MainApp extends StatelessWidget {
 
 BackendMode _backendFromEnvironment() {
   const raw = String.fromEnvironment('BACKEND_MODE', defaultValue: 'rest');
-  switch (raw.toLowerCase()) {
-    case 'firebase':
-      return BackendMode.firebase;
-    case 'local':
-      return BackendMode.local;
-    default:
-      return BackendMode.rest;
-  }
+  return raw.toLowerCase() == 'local' ? BackendMode.local : BackendMode.rest;
 }

@@ -1,6 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -70,28 +68,23 @@ class AuthService extends GetxService {
     NetworkService? network,
     AuthRemoteDataSource? remote,
     AppConfig? config,
-    fb_auth.FirebaseAuth? firebaseAuth,
     GoogleSignIn? googleSignIn,
-    FirebaseFirestore? firestore,
-  })  : _userRepo = userRepository,
-        _logs = logs,
-        _session = session,
-        _remote = remote ?? AuthRemoteDataSource((network ?? Get.find<NetworkService>()).dio),
-        _backend = config?.backend ?? BackendMode.rest,
-        _firebaseAuth =
-            firebaseAuth ?? (config?.backend == BackendMode.firebase ? fb_auth.FirebaseAuth.instance : null),
-        _googleSignIn = googleSignIn ?? (config?.backend == BackendMode.firebase ? GoogleSignIn() : null),
-        _firestore =
-            firestore ?? (config?.backend == BackendMode.firebase ? FirebaseFirestore.instance : null);
+  }) : _userRepo = userRepository,
+       _logs = logs,
+       _session = session,
+       _remote =
+           remote ??
+           AuthRemoteDataSource((network ?? Get.find<NetworkService>()).dio),
+       _backend = config?.backend ?? BackendMode.rest,
+       _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   final UserRepository _userRepo;
   final ActivityLogService _logs;
   final SessionService _session;
   final AuthRemoteDataSource _remote;
   final BackendMode _backend;
-  final fb_auth.FirebaseAuth? _firebaseAuth;
-  final GoogleSignIn? _googleSignIn;
-  final FirebaseFirestore? _firestore;
+  final GoogleSignIn _googleSignIn;
+  String? _lastErrorMessage;
 
   final Rxn<AppUser> _currentUser = Rxn<AppUser>();
   late final Future<void> _ready;
@@ -99,9 +92,10 @@ class AuthService extends GetxService {
   AppUser? get currentUser => _currentUser.value;
   bool get isLoggedIn => _currentUser.value != null;
   bool get isManager =>
-      _currentUser.value?.role == UserRole.admin || _currentUser.value?.role == UserRole.manager;
+      _currentUser.value?.role == UserRole.admin ||
+      _currentUser.value?.role == UserRole.manager;
   bool get isStaffOnly => _currentUser.value?.role == UserRole.staff;
-  bool get _useFirebase => _backend == BackendMode.firebase && _firebaseAuth != null;
+  String? get lastError => _lastErrorMessage;
 
   @override
   void onInit() {
@@ -134,40 +128,48 @@ class AuthService extends GetxService {
     }
   }
 
-  Future<bool> login(String username, String password, {bool staffLogin = false}) async {
+  Future<bool> login(
+    String username,
+    String password, {
+    bool staffLogin = false,
+  }) async {
     await Future<void>.delayed(const Duration(milliseconds: 250));
+    _lastErrorMessage = null;
+    final normalizedEmail = username.trim().toLowerCase();
     if (username.isEmpty || password.isEmpty) return false;
     if (staffLogin) {
-      final staff = AppUser(
-        id: 'u-staff',
-        name: 'Karyawan',
-        role: UserRole.staff,
-        email: username,
-        phone: '',
-        address: '',
-        region: '',
+      final success = await _loginStaffViaApi(
+        username: normalizedEmail,
+        pin: password,
       );
-      _currentUser.value = staff;
-      await _persistLocalTokens(userId: null);
-      _logs.add(
-        title: 'Login karyawan',
-        message: '$username masuk untuk tutup buku',
-        actor: 'Karyawan',
-      );
-      return true;
+      if (success) {
+        _logs.add(
+          title: 'Login karyawan',
+          message: '$username masuk',
+          actor: username,
+        );
+      }
+      return success;
     }
 
-    if (_useFirebase) {
-      final ok = await _loginViaFirebase(email: username, password: password);
-      if (ok) return true;
+    if (_backend == BackendMode.rest) {
+      final remoteOk = await _loginViaApi(
+        username: normalizedEmail,
+        password: password,
+      );
+      if (remoteOk) return true;
     }
 
-    final remoteOk = await _loginViaApi(username: username, password: password);
-    if (remoteOk) return true;
-
-    final found = await _userRepo.findByEmail(username);
-    if (found == null) return false;
-    if (found.password != password) return false;
+    final found = await _userRepo.findByEmail(normalizedEmail);
+    if (found == null) {
+      _lastErrorMessage ??= 'Email atau password salah.';
+      return false;
+    }
+    if (found.password != password) {
+      _lastErrorMessage ??= 'Email atau password salah.';
+      return false;
+    }
+    _lastErrorMessage = null;
     _setUser(found);
     await _persistSession(found.id);
     await _persistLocalTokens(userId: found.id);
@@ -188,24 +190,27 @@ class AuthService extends GetxService {
     String? region,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 200));
-
-    if (_useFirebase) {
-      final ok = await _loginGoogleViaFirebase(
-        idToken: idToken,
-        email: email,
-        name: name,
-        phone: phone,
-        address: address,
-        region: region,
-      );
-      return ok;
+    _lastErrorMessage = null;
+    String? token = idToken;
+    String effectiveEmail = email.trim().toLowerCase();
+    String? effectiveName = name;
+    if ((token == null || token.isEmpty) && _backend == BackendMode.rest) {
+      try {
+        final account = await _googleSignIn.signIn();
+        final auth = await account?.authentication;
+        token = auth?.idToken;
+        if (account != null) {
+          effectiveEmail = account.email;
+          effectiveName = account.displayName ?? effectiveName;
+        }
+      } catch (_) {}
     }
 
-    if (idToken != null && idToken.isNotEmpty) {
+    if (_backend == BackendMode.rest && token != null && token.isNotEmpty) {
       final dto = await _loginGoogleViaApi(
-        idToken: idToken,
-        email: email,
-        name: name,
+        idToken: token,
+        email: effectiveEmail,
+        name: effectiveName,
         phone: phone,
         address: address,
         region: region,
@@ -219,15 +224,15 @@ class AuthService extends GetxService {
         }
         _logs.add(
           title: 'Login Google',
-          message: '$email masuk lewat Google',
+          message: '$effectiveEmail masuk lewat Google',
           actor: _currentUser.value?.name ?? 'User',
         );
         return true;
       }
     }
 
-    final existing = await _userRepo.findByEmail(email);
-    if (existing != null) {
+    final existing = await _userRepo.findByEmail(effectiveEmail);
+    if (existing != null && existing.isGoogle) {
       if (existing.role == UserRole.staff) {
         // Disallow Google login for staff accounts; they must use credentials provided by manager.
         return false;
@@ -235,32 +240,21 @@ class AuthService extends GetxService {
       final entity = existing
         ..phone = phone?.isNotEmpty == true ? phone! : existing.phone
         ..address = address?.isNotEmpty == true ? address! : existing.address
-        ..region = region?.isNotEmpty == true ? region! : existing.region
-        ..isGoogle = true;
+        ..region = region?.isNotEmpty == true ? region! : existing.region;
       await _userRepo.upsert(entity);
       _setUser(entity);
       await _persistSession(entity.id);
-    } else {
-      final entity = UserEntity()
-        ..name = name ?? email.split('@').first
-        ..role = UserRole.manager
-        ..email = email
-        ..phone = phone ?? ''
-        ..address = address ?? ''
-        ..region = region ?? ''
-        ..isGoogle = true;
-      final savedId = await _userRepo.upsert(entity);
-      entity.id = savedId;
-      _setUser(entity);
-      await _persistSession(entity.id);
       await _persistLocalTokens(userId: entity.id);
+      _logs.add(
+        title: 'Login Google (offline)',
+        message: '$effectiveEmail masuk dengan data tersimpan',
+        actor: _currentUser.value?.name ?? 'User',
+      );
+      return true;
     }
-    _logs.add(
-      title: 'Login Google',
-      message: '$email masuk lewat Google',
-      actor: _currentUser.value?.name ?? 'User',
-    );
-    return true;
+
+    _lastErrorMessage ??= 'Login Google gagal, coba lagi.';
+    return false;
   }
 
   Future<bool> registerWithGoogle({
@@ -271,23 +265,26 @@ class AuthService extends GetxService {
     required String address,
     required String region,
   }) async {
-    if (_useFirebase) {
-      final ok = await _registerGoogleViaFirebase(
-        idToken: idToken,
-        email: email,
-        name: name,
-        phone: phone,
-        address: address,
-        region: region,
-      );
-      return ok;
+    String? token = idToken;
+    String effectiveEmail = email.trim().toLowerCase();
+    String? effectiveName = name;
+    if ((token == null || token.isEmpty) && _backend == BackendMode.rest) {
+      try {
+        final account = await _googleSignIn.signIn();
+        final auth = await account?.authentication;
+        token = auth?.idToken;
+        if (account != null) {
+          effectiveEmail = account.email;
+          effectiveName = account.displayName ?? effectiveName;
+        }
+      } catch (_) {}
     }
 
-    if (idToken != null && idToken.isNotEmpty) {
+    if (_backend == BackendMode.rest && token != null && token.isNotEmpty) {
       final dto = await _registerGoogleViaApi(
-        idToken: idToken,
-        email: email,
-        name: name,
+        idToken: token,
+        email: effectiveEmail,
+        name: effectiveName,
         phone: phone,
         address: address,
         region: region,
@@ -300,34 +297,14 @@ class AuthService extends GetxService {
         }
         _logs.add(
           title: 'Registrasi Google',
-          message: '$email terdaftar melalui Google',
+          message: '$effectiveEmail terdaftar melalui Google',
           actor: dto.user.name,
         );
         return true;
       }
     }
 
-    final exists = await _userRepo.findByEmail(email);
-    if (exists != null) return false;
-    final entity = UserEntity()
-      ..name = name ?? email.split('@').first
-      ..role = UserRole.manager
-      ..email = email
-      ..phone = phone
-      ..address = address
-      ..region = region
-      ..isGoogle = true;
-    final savedId = await _userRepo.upsert(entity);
-    entity.id = savedId;
-    _setUser(entity);
-    await _persistSession(entity.id);
-    await _persistLocalTokens(userId: entity.id);
-    _logs.add(
-      title: 'Registrasi Google',
-      message: '$email terdaftar melalui Google',
-      actor: entity.name,
-    );
-    return true;
+    return false;
   }
 
   Future<bool> registerWithEmail({
@@ -341,8 +318,8 @@ class AuthService extends GetxService {
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 250));
 
-    if (_useFirebase) {
-      final ok = await _registerViaFirebase(
+    if (_backend == BackendMode.rest) {
+      final dto = await _registerViaApi(
         name: name,
         email: email,
         password: password,
@@ -351,26 +328,15 @@ class AuthService extends GetxService {
         region: region,
         role: role,
       );
-      return ok;
-    }
-
-    final dto = await _registerViaApi(
-      name: name,
-      email: email,
-      password: password,
-      phone: phone,
-      address: address,
-      region: region,
-      role: role,
-    );
-    if (dto != null) {
-      await _persistAuthFromApi(dto, fallbackPassword: password);
-      _logs.add(
-        title: 'Registrasi akun',
-        message: '$name mendaftar melalui API',
-        actor: dto.user.name,
-      );
-      return true;
+      if (dto != null) {
+        await _persistAuthFromApi(dto, fallbackPassword: password);
+        _logs.add(
+          title: 'Registrasi akun',
+          message: '$name mendaftar melalui API',
+          actor: dto.user.name,
+        );
+        return true;
+      }
     }
 
     final exists = await _userRepo.findByEmail(email);
@@ -413,7 +379,10 @@ class AuthService extends GetxService {
     return true;
   }
 
-  Future<bool> resetPassword({required String email, required String newPassword}) async {
+  Future<bool> resetPassword({
+    required String email,
+    required String newPassword,
+  }) async {
     try {
       await _remote.resetPassword(token: email, password: newPassword);
     } catch (_) {
@@ -453,25 +422,6 @@ class AuthService extends GetxService {
     final savedId = await _userRepo.upsert(entity);
     entity.id = savedId;
     _setUser(entity);
-    final firestore = _firestore;
-    if (_useFirebase && firestore != null) {
-      try {
-        final uid = _firebaseAuth?.currentUser?.uid;
-        if (uid != null) {
-          await firestore.collection('users').doc(uid).set({
-            'name': updated.name,
-            'email': updated.email,
-            'phone': updated.phone,
-            'address': updated.address,
-            'region': updated.region,
-            'role': updated.role.name,
-            'isGoogle': updated.isGoogle,
-          }, SetOptions(merge: true));
-        }
-      } catch (_) {
-        // ignore and keep local
-      }
-    }
     _logs.add(
       title: 'Perbarui profil',
       message: 'Profil diperbarui oleh ${updated.name}',
@@ -480,20 +430,23 @@ class AuthService extends GetxService {
     return true;
   }
 
-  Future<bool> changePasswordForCurrent({required String newPassword, String? currentPassword}) async {
+  Future<bool> changePasswordForCurrent({
+    required String newPassword,
+    String? currentPassword,
+  }) async {
     final user = _currentUser.value;
     if (user == null) return false;
     if (user.password != null && !user.isGoogle) {
-      if (currentPassword != null && currentPassword != user.password) return false;
+      if (currentPassword != null && currentPassword != user.password)
+        return false;
     }
     return resetPassword(email: user.email, newPassword: newPassword);
   }
 
   Future<void> logout() async {
-    if (_useFirebase) {
-      await _firebaseAuth?.signOut();
-      await _googleSignIn?.signOut();
-    }
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
     if (_currentUser.value != null) {
       _logs.add(
         title: 'Logout',
@@ -511,15 +464,25 @@ class AuthService extends GetxService {
 
   Future<void> _persistSession(int? userId) => _session.saveUserId(userId);
 
-  Future<void> _persistAuthFromApi(AuthResponseDto dto, {String? fallbackPassword}) async {
-    final entity = _toEntityFromDto(dto.user, fallbackPassword: fallbackPassword);
+  Future<void> _persistAuthFromApi(
+    AuthResponseDto dto, {
+    String? fallbackPassword,
+  }) async {
+    final entity = _toEntityFromDto(
+      dto.user,
+      fallbackPassword: fallbackPassword,
+    );
     final savedId = await _userRepo.upsert(entity);
     entity.id = savedId;
     _setUser(entity);
     await _session.saveUserId(entity.id);
     final now = DateTime.now();
-    final token = dto.token.isNotEmpty ? dto.token : 'local-${entity.id}-${now.millisecondsSinceEpoch}';
-    final refresh = dto.refreshToken.isNotEmpty ? dto.refreshToken : 'local-refresh-${entity.id}';
+    final token = dto.token.isNotEmpty
+        ? dto.token
+        : 'local-${entity.id}-${now.millisecondsSinceEpoch}';
+    final refresh = dto.refreshToken.isNotEmpty
+        ? dto.refreshToken
+        : 'local-refresh-${entity.id}';
     await _session.saveToken(
       token: token,
       expiresAt: dto.expiresAt ?? now.add(const Duration(hours: 12)),
@@ -528,8 +491,10 @@ class AuthService extends GetxService {
     await _session.saveRefreshToken(refreshToken: refresh);
   }
 
-  Future<void> _persistFromDto(AuthResponseDto dto, {String? fallbackPassword}) =>
-      _persistAuthFromApi(dto, fallbackPassword: fallbackPassword);
+  Future<void> _persistFromDto(
+    AuthResponseDto dto, {
+    String? fallbackPassword,
+  }) => _persistAuthFromApi(dto, fallbackPassword: fallbackPassword);
 
   Future<void> _persistLocalTokens({int? userId}) async {
     final now = DateTime.now();
@@ -594,7 +559,10 @@ class AuthService extends GetxService {
     }
   }
 
-  Future<bool> _loginViaApi({required String username, required String password}) async {
+  Future<bool> _loginViaApi({
+    required String username,
+    required String password,
+  }) async {
     try {
       final dto = await _remote.login(email: username, password: password);
       if (dto.token.isEmpty) return false;
@@ -604,30 +572,56 @@ class AuthService extends GetxService {
         message: '${dto.user.name} masuk melalui API',
         actor: dto.user.name,
       );
+      _lastErrorMessage = null;
       return true;
-    } on DioException {
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        _lastErrorMessage = data['message']?.toString();
+      } else {
+        _lastErrorMessage = 'Login gagal, periksa data Anda.';
+      }
       return false;
     } catch (_) {
+      _lastErrorMessage = 'Login gagal, periksa data Anda.';
       return false;
     }
   }
 
-  Future<bool> _loginViaFirebase({required String email, required String password}) async {
+  Future<bool> _loginStaffViaApi({
+    required String username,
+    required String pin,
+  }) async {
+    if (_backend != BackendMode.rest) {
+      _lastErrorMessage = 'Login karyawan hanya tersedia saat mode REST aktif.';
+      return false;
+    }
     try {
-      final cred = await _firebaseAuth?.signInWithEmailAndPassword(email: email, password: password);
-      final user = cred?.user;
-      if (user == null) return false;
-      final entity = await _persistFromFirebaseUser(user);
-      _setUser(entity);
-      await _persistSession(entity.id);
-      await _persistLocalTokens(userId: entity.id);
-      _logs.add(
-        title: 'Login',
-        message: '${entity.name} masuk via Firebase',
-        actor: entity.name,
+      final dto = await _remote.loginStaff(
+        email: username.contains('@') ? username : null,
+        phone: username.contains('@') ? null : username,
+        pin: pin,
+        name: username,
       );
+      if (dto.token.isEmpty) return false;
+      await _persistAuthFromApi(dto, fallbackPassword: pin);
+      _logs.add(
+        title: 'Login karyawan',
+        message: '${dto.user.name} masuk melalui API',
+        actor: dto.user.name,
+      );
+      _lastErrorMessage = null;
       return true;
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        _lastErrorMessage = data['message']?.toString();
+      } else {
+        _lastErrorMessage = 'Login karyawan gagal, periksa data Anda.';
+      }
+      return false;
     } catch (_) {
+      _lastErrorMessage = 'Login karyawan gagal, periksa data Anda.';
       return false;
     }
   }
@@ -653,56 +647,6 @@ class AuthService extends GetxService {
       return dto;
     } catch (_) {
       return null;
-    }
-  }
-
-  Future<bool> _loginGoogleViaFirebase({
-    String? idToken,
-    required String email,
-    String? name,
-    String? phone,
-    String? address,
-    String? region,
-  }) async {
-    try {
-      fb_auth.UserCredential cred;
-      if (idToken != null && idToken.isNotEmpty) {
-        final token = fb_auth.GoogleAuthProvider.credential(idToken: idToken);
-        cred = await _firebaseAuth!.signInWithCredential(token);
-      } else {
-        final account = await (_googleSignIn ?? GoogleSignIn()).signIn();
-        if (account == null) return false;
-        final auth = await account.authentication;
-        final credential = fb_auth.GoogleAuthProvider.credential(
-          accessToken: auth.accessToken,
-          idToken: auth.idToken,
-        );
-        cred = await _firebaseAuth!.signInWithCredential(credential);
-      }
-      final user = cred.user;
-      if (user == null) return false;
-      final entity = await _persistFromFirebaseUser(
-        user,
-        fallbackName: name,
-        phone: phone,
-        address: address,
-        region: region,
-      );
-      _setUser(entity);
-      await _persistSession(entity.id);
-      await _persistLocalTokens(userId: entity.id);
-      if (entity.role == UserRole.staff) {
-        await logout();
-        return false;
-      }
-      _logs.add(
-        title: 'Login Google',
-        message: '${entity.email} masuk via Firebase/Google',
-        actor: entity.name,
-      );
-      return true;
-    } catch (_) {
-      return false;
     }
   }
 
@@ -752,138 +696,5 @@ class AuthService extends GetxService {
     } catch (_) {
       return null;
     }
-  }
-
-  Future<bool> _registerGoogleViaFirebase({
-    String? idToken,
-    required String email,
-    String? name,
-    String? phone,
-    String? address,
-    String? region,
-  }) async {
-    try {
-      // FirebaseAuth does not support "register Google" separately; we just sign in.
-      final ok = await _loginGoogleViaFirebase(
-        idToken: idToken,
-        email: email,
-        name: name,
-        phone: phone,
-        address: address,
-        region: region,
-      );
-      if (!ok) return false;
-      _logs.add(
-        title: 'Registrasi Google',
-        message: '$email terdaftar via Firebase/Google',
-        actor: _currentUser.value?.name ?? email,
-      );
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> _registerViaFirebase({
-    required String name,
-    required String email,
-    required String password,
-    required String phone,
-    required String address,
-    required String region,
-    required UserRole role,
-  }) async {
-    try {
-      final cred = await _firebaseAuth?.createUserWithEmailAndPassword(email: email, password: password);
-      final user = cred?.user;
-      if (user == null) return false;
-      await user.updateDisplayName(name);
-      final entity = await _persistFromFirebaseUser(
-        user,
-        overrideRole: role,
-        phone: phone,
-        address: address,
-        region: region,
-      );
-      _setUser(entity);
-      await _persistSession(entity.id);
-      await _persistLocalTokens(userId: entity.id);
-      _logs.add(
-        title: 'Registrasi akun',
-        message: '$name mendaftar via Firebase',
-        actor: name,
-      );
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<UserEntity> _persistFromFirebaseUser(
-    fb_auth.User user, {
-    String? fallbackName,
-    String? phone,
-    String? address,
-    String? region,
-    UserRole? overrideRole,
-  }) async {
-    UserRole role = overrideRole ?? UserRole.manager;
-    String name = user.displayName ?? fallbackName ?? user.email?.split('@').first ?? 'User';
-    String email = user.email ?? '${user.uid}@firebase.local';
-    String phoneVal = phone ?? user.phoneNumber ?? '';
-    String addressVal = address ?? '';
-    String regionVal = region ?? '';
-    final existing = await _userRepo.findByEmail(email);
-
-    try {
-      final firestore = _firestore;
-      if (firestore != null) {
-        final doc = await firestore.collection('users').doc(user.uid).get();
-        final data = doc.data();
-        if (data != null) {
-          name = data['name']?.toString() ?? name;
-          email = data['email']?.toString() ?? email;
-          phoneVal = data['phone']?.toString() ?? phoneVal;
-          addressVal = data['address']?.toString() ?? addressVal;
-          regionVal = data['region']?.toString() ?? regionVal;
-          role = _roleFromString(data['role']?.toString() ?? role.name);
-        } else {
-          await firestore.collection('users').doc(user.uid).set({
-            'name': name,
-            'email': email,
-            'phone': phoneVal,
-            'address': addressVal,
-            'region': regionVal,
-            'role': role.name,
-            'isGoogle': user.providerData.any((p) => p.providerId == 'google.com'),
-          });
-        }
-      }
-    } catch (_) {
-      // ignore firestore failures, use local data
-    }
-
-    final entity = UserEntity()
-      ..name = name
-      ..role = role
-      ..email = email
-      ..phone = phoneVal
-      ..address = addressVal
-      ..region = regionVal
-      ..isGoogle = user.providerData.any((p) => p.providerId == 'google.com')
-      ..password = null;
-    if (existing != null) {
-      entity.id = existing.id;
-    }
-    final savedId = await _userRepo.upsert(entity);
-    entity.id = savedId;
-    final token = await user.getIdToken();
-    await _session.saveToken(
-      token: token ?? 'firebase-${entity.id}',
-      expiresAt: DateTime.now().add(const Duration(hours: 1)),
-      userId: entity.id,
-    );
-    await _session.saveRefreshToken(refreshToken: 'firebase-refresh-${entity.id}');
-    return entity;
   }
 }

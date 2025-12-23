@@ -2,7 +2,6 @@ import 'package:get/get.dart';
 
 import '../database/local_database.dart';
 import '../services/activity_log_service.dart';
-import '../services/data_repository.dart';
 import '../services/sync_service.dart';
 import '../services/region_service.dart';
 import '../services/auth_service.dart';
@@ -12,23 +11,20 @@ import '../repositories/user_repository_impl.dart';
 import '../../modules/management/data/repositories/management_repository.dart';
 import '../../modules/management/data/datasources/management_remote_data_source.dart';
 import '../../modules/product/data/repositories/product_repository.dart';
-import '../../modules/product/data/datasources/product_firestore_data_source.dart';
+import '../../modules/product/data/datasources/product_remote_data_source.dart';
 import '../../modules/staff/data/repositories/staff_repository.dart';
 import '../../modules/staff/data/datasources/staff_remote_data_source.dart';
 import '../../modules/reports/data/repositories/reports_repository.dart';
+import '../../modules/reports/data/datasources/finance_remote_data_source.dart';
 import '../../modules/membership/data/repositories/membership_repository.dart';
 import '../../modules/membership/data/datasources/membership_remote_data_source.dart';
 import '../../modules/transactions/data/repositories/transaction_repository.dart';
-import '../../modules/transactions/data/datasources/transaction_firestore_data_source.dart';
 import '../../modules/transactions/data/datasources/transaction_remote_data_source.dart';
 import '../../modules/stock/data/repositories/stock_repository.dart';
-import '../../modules/stock/data/datasources/stock_firestore_data_source.dart';
 import '../../modules/stock/data/datasources/stock_remote_data_source.dart';
-import '../../modules/reports/data/datasources/reports_firestore_data_source.dart';
 import '../services/session_service.dart';
 import 'app_config.dart';
 import '../network/network_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../modules/closing/data/repositories/closing_repository.dart';
 
 class GlobalBindings extends Bindings {
@@ -42,7 +38,13 @@ class GlobalBindings extends Bindings {
     final dbReady = Future<LocalDatabase>.value(db);
 
     Get.put<ActivityLogService>(ActivityLogService(dbReady: dbReady), permanent: true);
-    Get.put<DataRepository>(DataRepository(), permanent: true);
+    Get.lazyPut<SessionService>(() => SessionService(db.isar), fenix: true);
+
+    // Network service is registered for REST backend; safe fallback if offline/local.
+    Get.lazyPut<NetworkService>(() {
+      final session = Get.find<SessionService>();
+      return NetworkService(config: config, session: session);
+    }, fenix: true);
 
     // Repositories always backed by Isar for offline; remote sync depends on backend mode.
     Get.lazyPut<RegionService>(
@@ -50,7 +52,6 @@ class GlobalBindings extends Bindings {
         client: Get.find<NetworkService>(),
         isar: db.isar,
         config: config,
-        firestore: config.backend == BackendMode.firebase ? FirebaseFirestore.instance : null,
       ),
       fenix: true,
     );
@@ -66,8 +67,8 @@ class GlobalBindings extends Bindings {
     Get.lazyPut<ProductRepository>(
       () => ProductRepository(
         db.isar,
-        remote: config.backend == BackendMode.firebase
-            ? ProductFirestoreDataSource(FirebaseFirestore.instance)
+        restRemote: config.backend == BackendMode.rest
+            ? ProductRemoteDataSource(Get.find<NetworkService>().dio)
             : null,
       ),
       fenix: true,
@@ -84,8 +85,8 @@ class GlobalBindings extends Bindings {
     Get.lazyPut<ReportsRepository>(
       () => ReportsRepository(
         db.isar,
-        remote: config.backend == BackendMode.firebase
-            ? ReportsFirestoreDataSource(FirebaseFirestore.instance)
+        restRemote: config.backend == BackendMode.rest
+            ? FinanceRemoteDataSource(Get.find<NetworkService>().dio)
             : null,
       ),
       fenix: true,
@@ -102,9 +103,6 @@ class GlobalBindings extends Bindings {
     Get.put<TransactionRepository>(
       TransactionRepository(
         db.isar,
-        remote: config.backend == BackendMode.firebase
-            ? TransactionFirestoreDataSource(FirebaseFirestore.instance)
-            : null,
         restRemote: config.backend == BackendMode.rest
             ? TransactionRemoteDataSource(Get.find<NetworkService>().dio)
             : null,
@@ -119,19 +117,9 @@ class GlobalBindings extends Bindings {
         restRemote: config.backend == BackendMode.rest
             ? StockRemoteDataSource(Get.find<NetworkService>().dio)
             : null,
-        remote: config.backend == BackendMode.firebase
-            ? StockFirestoreDataSource(FirebaseFirestore.instance)
-            : null,
       ),
       fenix: true,
     );
-    Get.lazyPut<SessionService>(() => SessionService(db.isar), fenix: true);
-
-    // Network service is registered for REST/Firebase backends; safe fallback if offline/local.
-    Get.lazyPut<NetworkService>(() {
-      final session = Get.find<SessionService>();
-      return NetworkService(config: config, session: session);
-    }, fenix: true);
 
     // AuthService available globally for splash/guards.
     Get.lazyPut<AuthService>(
@@ -145,8 +133,8 @@ class GlobalBindings extends Bindings {
       fenix: true,
     );
 
-    // FCM token: register for firebase or rest backend (rest will store token via API).
-    if (config.backend == BackendMode.firebase || config.backend == BackendMode.rest) {
+    // FCM token: register for rest backend (token stored via API).
+    if (config.backend == BackendMode.rest) {
       Get.lazyPut<PushNotificationService>(
         () => PushNotificationService(config: config, network: Get.find<NetworkService>()),
         fenix: true,

@@ -78,7 +78,7 @@ class RegisterView extends GetView<RegisterController> {
                               icon: Icons.badge_rounded,
                               validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
                             ),
-                            const SizedBox(height: AppDimens.spacingSm),
+                            const SizedBox(height: AppDimens.spacingMd),
                             _field(
                               controller: controller.emailController,
                               label: 'Email',
@@ -87,7 +87,7 @@ class RegisterView extends GetView<RegisterController> {
                               validator: (v) =>
                                   v != null && v.contains('@') ? null : 'Masukkan email valid',
                             ),
-                            const SizedBox(height: AppDimens.spacingSm),
+                            const SizedBox(height: AppDimens.spacingMd),
                             _field(
                               controller: controller.phoneController,
                               label: 'Nomor HP',
@@ -95,9 +95,9 @@ class RegisterView extends GetView<RegisterController> {
                               keyboardType: TextInputType.phone,
                               validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
                             ),
-                            const SizedBox(height: AppDimens.spacingSm),
+                            const SizedBox(height: AppDimens.spacingMd),
                             _regionDropdown(controller),
-                            const SizedBox(height: AppDimens.spacingSm),
+                            const SizedBox(height: AppDimens.spacingMd),
                             _field(
                               controller: controller.addressController,
                               label: 'Alamat Lengkap',
@@ -105,7 +105,7 @@ class RegisterView extends GetView<RegisterController> {
                               maxLines: 2,
                               validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
                             ),
-                            const SizedBox(height: AppDimens.spacingSm),
+                            const SizedBox(height: AppDimens.spacingMd),
                             _field(
                               controller: controller.passwordController,
                               label: 'Password',

@@ -1,23 +1,22 @@
-﻿import 'package:isar_community/isar.dart';
+import 'package:isar_community/isar.dart';
 
+import '../datasources/product_remote_data_source.dart';
 import '../entities/product_entity.dart';
 
-import '../datasources/product_firestore_data_source.dart';
-
 class ProductRepository {
-  ProductRepository(this._isar, {this.remote});
+  ProductRepository(this._isar, {this.restRemote});
 
   final Isar _isar;
-  final ProductFirestoreDataSource? remote;
+  final ProductRemoteDataSource? restRemote;
 
   Future<List<ProductEntity>> getAll() async {
-    if (remote != null) {
+    if (restRemote != null) {
       try {
-        final items = await remote!.fetchAll();
+        final items = await restRemote!.fetchAll();
         await replaceAll(items);
         return items;
       } catch (_) {
-        // Fallback
+        // Fallback to cached data
       }
     }
     return _isar.productEntitys.where().findAll();
@@ -25,17 +24,8 @@ class ProductRepository {
 
   Future<ProductEntity?> getById(Id id) => _isar.productEntitys.get(id);
 
-  Future<Id> upsert(ProductEntity product) async {
-    final id = await _isar.writeTxn(() => _isar.productEntitys.put(product));
-    if (remote != null) {
-      try {
-        await remote!.upsert(product);
-      } catch (_) {
-        // ignore
-      }
-    }
-    return id;
-  }
+  Future<Id> upsert(ProductEntity product) async =>
+      _isar.writeTxn(() => _isar.productEntitys.put(product));
 
   Future<void> replaceAll(Iterable<ProductEntity> items) async {
     await _isar.writeTxn(() async {
@@ -44,16 +34,5 @@ class ProductRepository {
     });
   }
 
-  Future<void> delete(Id id) async {
-    final item = await _isar.productEntitys.get(id);
-    await _isar.writeTxn(() => _isar.productEntitys.delete(id));
-    if (remote != null && item != null) {
-      try {
-        await remote!.delete(item);
-      } catch (_) {
-        // ignore
-      }
-    }
-  }
+  Future<void> delete(Id id) async => _isar.writeTxn(() => _isar.productEntitys.delete(id));
 }
-

@@ -12,11 +12,11 @@ class OrderLineDto {
   final int qty;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'category': category,
-        'price': price,
-        'qty': qty,
-      };
+    'name': name,
+    'category': category,
+    'price': price,
+    'qty': qty,
+  };
 
   factory OrderLineDto.fromJson(Map<String, dynamic> json) {
     return OrderLineDto(
@@ -36,6 +36,7 @@ class OrderPayloadDto {
     required this.change,
     required this.paymentMethod,
     this.stylist,
+    this.stylistId,
     this.customer,
     this.shiftId,
   });
@@ -46,19 +47,21 @@ class OrderPayloadDto {
   final int change;
   final String paymentMethod;
   final String? stylist;
+  final int? stylistId;
   final String? customer;
   final String? shiftId;
 
   Map<String, dynamic> toJson() => {
-        'items': items.map((e) => e.toJson()).toList(),
-        'total': total,
-        'paid': paid,
-        'change': change,
-        'paymentMethod': paymentMethod,
-        if (stylist != null) 'stylist': stylist,
-        if (customer != null) 'customer': customer,
-        if (shiftId != null) 'shiftId': shiftId,
-      };
+    'items': items.map((e) => e.toJson()).toList(),
+    'total': total,
+    'paid': paid,
+    'change': change,
+    'paymentMethod': paymentMethod,
+    if (stylist != null) 'stylist': stylist,
+    if (stylistId != null) 'stylistId': stylistId,
+    if (customer != null) 'customer': customer,
+    if (shiftId != null) 'shiftId': shiftId,
+  };
 }
 
 class OrderResponseDto {

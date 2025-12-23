@@ -7,9 +7,14 @@ class MembershipRemoteDataSource {
 
   final Dio _dio;
 
-  Future<int> fetchUsedQuota() async {
+  Future<MembershipStateDto> fetchState() async {
     final res = await _dio.get<Map<String, dynamic>>('/membership');
-    return int.tryParse(res.data?['usedQuota']?.toString() ?? '') ?? 0;
+    return MembershipStateDto.fromJson(res.data ?? <String, dynamic>{});
+  }
+
+  Future<int> fetchUsedQuota() async {
+    final state = await fetchState();
+    return state.usedQuota;
   }
 
   Future<void> setUsedQuota(int value) async {
@@ -24,7 +29,8 @@ class MembershipRemoteDataSource {
         ..amount = int.tryParse(raw['amount']?.toString() ?? '') ?? 0
         ..manager = raw['manager']?.toString() ?? ''
         ..note = raw['note']?.toString() ?? ''
-        ..date = DateTime.tryParse(raw['date']?.toString() ?? '') ?? DateTime.now();
+        ..date =
+            DateTime.tryParse(raw['date']?.toString() ?? '') ?? DateTime.now();
       e.id = int.tryParse(raw['id']?.toString() ?? '') ?? 0;
       return e;
     }).toList();
@@ -48,5 +54,28 @@ class MembershipRemoteDataSource {
       ..date = DateTime.tryParse(data['date']?.toString() ?? '') ?? topup.date;
     e.id = int.tryParse(data['id']?.toString() ?? '') ?? topup.id;
     return e;
+  }
+}
+
+class MembershipStateDto {
+  MembershipStateDto({
+    required this.usedQuota,
+    required this.freeUsed,
+    required this.freeQuota,
+    required this.topupBalance,
+  });
+
+  final int usedQuota;
+  final int freeUsed;
+  final int freeQuota;
+  final int topupBalance;
+
+  factory MembershipStateDto.fromJson(Map<String, dynamic> json) {
+    return MembershipStateDto(
+      usedQuota: int.tryParse(json['usedQuota']?.toString() ?? '') ?? 0,
+      freeUsed: int.tryParse(json['freeUsed']?.toString() ?? '') ?? 0,
+      freeQuota: int.tryParse(json['freeQuota']?.toString() ?? '') ?? 1000,
+      topupBalance: int.tryParse(json['topupBalance']?.toString() ?? '') ?? 0,
+    );
   }
 }

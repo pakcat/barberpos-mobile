@@ -17,14 +17,16 @@ class StaffRemoteDataSource {
         ..phone = raw['phone']?.toString() ?? ''
         ..email = raw['email']?.toString() ?? ''
         ..commission = double.tryParse(raw['commission']?.toString() ?? '') ?? 0
-        ..joinDate = DateTime.tryParse(raw['joinDate']?.toString() ?? '') ?? DateTime.now()
+        ..joinDate =
+            DateTime.tryParse(raw['joinDate']?.toString() ?? '') ??
+            DateTime.now()
         ..active = raw['active'] == true;
       e.id = int.tryParse(raw['id']?.toString() ?? '') ?? 0;
       return e;
     }).toList();
   }
 
-  Future<EmployeeEntity> upsert(EmployeeEntity employee) async {
+  Future<EmployeeEntity> upsert(EmployeeEntity employee, {String? pin}) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/employees',
       data: {
@@ -36,6 +38,7 @@ class StaffRemoteDataSource {
         'joinDate': employee.joinDate.toIso8601String().split('T').first,
         'commission': employee.commission,
         'active': employee.active,
+        if (pin != null && pin.isNotEmpty) 'pin': pin,
       },
     );
     final data = res.data ?? <String, dynamic>{};
@@ -44,8 +47,12 @@ class StaffRemoteDataSource {
       ..role = data['role']?.toString() ?? employee.role
       ..phone = data['phone']?.toString() ?? employee.phone
       ..email = data['email']?.toString() ?? employee.email
-      ..commission = double.tryParse(data['commission']?.toString() ?? '') ?? employee.commission
-      ..joinDate = DateTime.tryParse(data['joinDate']?.toString() ?? '') ?? employee.joinDate
+      ..commission =
+          double.tryParse(data['commission']?.toString() ?? '') ??
+          employee.commission
+      ..joinDate =
+          DateTime.tryParse(data['joinDate']?.toString() ?? '') ??
+          employee.joinDate
       ..active = data['active'] == true;
     e.id = int.tryParse(data['id']?.toString() ?? '') ?? employee.id;
     return e;

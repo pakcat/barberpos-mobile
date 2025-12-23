@@ -1,4 +1,3 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
@@ -6,32 +5,24 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/network/network_service.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../transactions/data/repositories/transaction_repository.dart';
-import '../../data/datasources/staff_firestore_data_source.dart';
 import '../../data/datasources/staff_remote_data_source.dart';
-import '../../data/repositories/staff_repository.dart';
 import '../../data/entities/employee_entity.dart';
+import '../../data/repositories/staff_repository.dart';
 import '../models/employee_model.dart';
 
 class StaffController extends GetxController {
   StaffController({
     StaffRepository? repository,
-    StaffFirestoreDataSource? firebase,
     StaffRemoteDataSource? restRemote,
     AppConfig? config,
     NetworkService? network,
-    FirebaseFirestore? firestore,
-  })  : repo = repository ?? Get.find<StaffRepository>(),
-        txRepo = Get.find<TransactionRepository>(),
-        logs = Get.find<ActivityLogService>(),
-        _config = config ?? Get.find<AppConfig>(),
-        _remote = firebase ??
-            ((config ?? Get.find<AppConfig>()).backend == BackendMode.firebase
-                ? StaffFirestoreDataSource(firestore ?? FirebaseFirestore.instance)
-                : null),
-        _rest = restRemote ??
-            ((config ?? Get.find<AppConfig>()).backend == BackendMode.rest
-                ? StaffRemoteDataSource((network ?? Get.find<NetworkService>()).dio)
-                : null);
+  }) : repo = repository ?? Get.find<StaffRepository>(),
+       txRepo = Get.find<TransactionRepository>(),
+       logs = Get.find<ActivityLogService>(),
+       _config = config ?? Get.find<AppConfig>(),
+       _rest =
+           restRemote ??
+           StaffRemoteDataSource((network ?? Get.find<NetworkService>()).dio);
 
   final StaffRepository repo;
   final TransactionRepository txRepo;
@@ -39,8 +30,7 @@ class StaffController extends GetxController {
   final loading = false.obs;
   final ActivityLogService logs;
   final AppConfig _config;
-  final StaffFirestoreDataSource? _remote;
-  final StaffRemoteDataSource? _rest;
+  final StaffRemoteDataSource _rest;
 
   @override
   void onInit() {
@@ -48,37 +38,21 @@ class StaffController extends GetxController {
     _load();
   }
 
-  bool get _useFirebase => _config.backend == BackendMode.firebase && _remote != null;
-  bool get _useRest => _config.backend == BackendMode.rest && _rest != null;
+  bool get _useRest => _config.backend == BackendMode.rest;
 
   Future<void> _load() async {
     loading.value = true;
     if (_useRest) {
       try {
-        final rest = _rest!;
-        final remote = await rest.fetchAll();
+        final remote = await _rest.fetchAll();
         await repo.replaceAll(remote);
         employees.assignAll(remote.map(_map));
         loading.value = false;
         return;
       } catch (_) {}
     }
-    if (_useFirebase) {
-      try {
-        final fb = _remote;
-        final remote = await fb?.fetchAll();
-        if (remote != null) {
-          await repo.replaceAll(remote);
-          employees.assignAll(remote.map(_map));
-        }
-      } catch (_) {
-        final data = await repo.getAll();
-        employees.assignAll(data.map(_map));
-      }
-    } else {
-      final data = await repo.getAll();
-      employees.assignAll(data.map(_map));
-    }
+    final data = await repo.getAll();
+    employees.assignAll(data.map(_map));
     loading.value = false;
   }
 
@@ -94,10 +68,7 @@ class StaffController extends GetxController {
     employees.refresh();
     final entity = _toEntity(employee);
     if (_useRest) {
-      final rest = _rest!;
-      rest.upsert(entity);
-    } else if (_useFirebase) {
-      _remote!.upsert(entity);
+      _rest.upsert(entity, pin: employee.pin);
     }
     repo.upsert(entity);
     logs.add(
@@ -110,28 +81,35 @@ class StaffController extends GetxController {
   }
 
   void toggleStatus(Employee employee) {
-    final newStatus =
-        employee.status == EmployeeStatus.active ? EmployeeStatus.inactive : EmployeeStatus.active;
-    upsert(Employee(
-      id: employee.id,
-      name: employee.name,
-      role: employee.role,
-      phone: employee.phone,
-      email: employee.email,
-      joinDate: employee.joinDate,
-      commission: employee.commission,
-      status: newStatus,
-    ));
+    final newStatus = employee.status == EmployeeStatus.active
+        ? EmployeeStatus.inactive
+        : EmployeeStatus.active;
+    upsert(
+      Employee(
+        id: employee.id,
+        name: employee.name,
+        role: employee.role,
+        phone: employee.phone,
+        email: employee.email,
+        joinDate: employee.joinDate,
+        commission: employee.commission,
+        status: newStatus,
+      ),
+    );
     logs.add(
       title: 'Ubah status karyawan',
-      message: '${employee.name} menjadi ${newStatus == EmployeeStatus.active ? 'Aktif' : 'Nonaktif'}',
+      message:
+          '${employee.name} menjadi ${newStatus == EmployeeStatus.active ? 'Aktif' : 'Nonaktif'}',
       actor: 'Manager',
       type: ActivityLogType.warning,
     );
   }
 
   void resetPassword(Employee employee) {
-    Get.snackbar('Reset Password', 'Password untuk ${employee.name} sudah direset');
+    Get.snackbar(
+      'Reset Password',
+      'Password untuk ${employee.name} sudah direset',
+    );
     logs.add(
       title: 'Reset password',
       message: 'Password direset untuk ${employee.name}',
@@ -146,10 +124,7 @@ class StaffController extends GetxController {
     final deleteId = int.tryParse(employee.id) ?? employee.id.hashCode;
     repo.delete(deleteId);
     if (_useRest) {
-      final rest = _rest!;
-      rest.delete(deleteId);
-    } else if (_useFirebase) {
-      _remote!.delete(_toEntity(employee));
+      _rest.delete(deleteId);
     }
     Get.back();
     Get.snackbar('Berhasil', 'Karyawan dihapus');
@@ -162,15 +137,15 @@ class StaffController extends GetxController {
   }
 
   Employee _map(EmployeeEntity e) => Employee(
-        id: e.id.toString(),
-        name: e.name,
-        role: e.role,
-        phone: e.phone,
-        email: e.email,
-        joinDate: e.joinDate,
-        commission: e.commission,
-        status: e.active ? EmployeeStatus.active : EmployeeStatus.inactive,
-      );
+    id: e.id.toString(),
+    name: e.name,
+    role: e.role,
+    phone: e.phone,
+    email: e.email,
+    joinDate: e.joinDate,
+    commission: e.commission,
+    status: e.active ? EmployeeStatus.active : EmployeeStatus.inactive,
+  );
 
   EmployeeEntity _toEntity(Employee e) {
     final entity = EmployeeEntity()
@@ -197,26 +172,40 @@ class StaffController extends GetxController {
       omzet += t.amount;
       for (final line in t.items) {
         itemCount += line.qty;
-        services.update(line.name, (v) => v + line.qty, ifAbsent: () => line.qty);
+        services.update(
+          line.name,
+          (v) => v + line.qty,
+          ifAbsent: () => line.qty,
+        );
       }
     }
-    final topService = services.entries.isEmpty
-        ? null
-        : services.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
     return StylistStat(
+      name: name,
       omzet: omzet,
-      transaksi: trx,
-      items: itemCount,
-      topService: topService,
+      transactions: trx,
+      itemsSold: itemCount,
+      mostSoldService: services.entries.isEmpty
+          ? ''
+          : services.entries.reduce((a, b) => a.value >= b.value ? a : b).key,
     );
   }
 }
 
 class StylistStat {
-  StylistStat({required this.omzet, required this.transaksi, required this.items, this.topService});
-  final int omzet;
-  final int transaksi;
-  final int items;
-  final String? topService;
-}
+  StylistStat({
+    required this.name,
+    required this.omzet,
+    required this.transactions,
+    required this.itemsSold,
+    required this.mostSoldService,
+  });
 
+  final String name;
+  final int omzet;
+  final int transactions;
+  final int itemsSold;
+  final String mostSoldService;
+
+  int get transaksi => transactions;
+  int get items => itemsSold;
+}

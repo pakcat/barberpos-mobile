@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
@@ -13,22 +12,17 @@ class RegionService extends GetxService {
     NetworkService? client,
     required Isar isar,
     AppConfig? config,
-    FirebaseFirestore? firestore,
   })  : _client = client != null
             ? client.dio
             : (Get.isRegistered<NetworkService>() ? Get.find<NetworkService>().dio : null),
         _isar = isar,
         _backend =
             config?.backend ??
-            (Get.isRegistered<AppConfig>() ? Get.find<AppConfig>().backend : BackendMode.rest),
-        _firestore =
-            firestore ??
-            (config?.backend == BackendMode.firebase ? FirebaseFirestore.instance : null);
+            (Get.isRegistered<AppConfig>() ? Get.find<AppConfig>().backend : BackendMode.rest);
 
   final Dio? _client;
   final Isar _isar;
   final BackendMode _backend;
-  final FirebaseFirestore? _firestore;
   final RxList<String> regions = <String>[].obs;
 
   Future<RegionService> init() async {
@@ -45,10 +39,6 @@ class RegionService extends GetxService {
   }
 
   Future<void> load() async {
-    if (_useFirebase) {
-      final ok = await _loadFromFirebase();
-      if (ok) return;
-    }
     if (_backend == BackendMode.rest && _client != null) {
       try {
         final client = _client;
@@ -68,24 +58,6 @@ class RegionService extends GetxService {
       final fallbackDtos = _fallbackRegions.map((e) => RegionDto(name: e)).toList();
       regions.assignAll(fallbackDtos.map((e) => e.name));
       await _persist(fallbackDtos);
-    }
-  }
-
-  bool get _useFirebase => _backend == BackendMode.firebase && _firestore != null;
-
-  Future<bool> _loadFromFirebase() async {
-    try {
-      final snapshot = await _firestore!.collection('regions').get();
-      final parsed = snapshot.docs
-          .map((doc) => RegionDto.fromJson(doc.data()))
-          .where((e) => e.name.isNotEmpty)
-          .toList();
-      if (parsed.isEmpty) return false;
-      regions.assignAll(parsed.map((e) => e.name));
-      await _persist(parsed);
-      return true;
-    } catch (_) {
-      return false;
     }
   }
 

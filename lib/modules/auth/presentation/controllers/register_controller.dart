@@ -58,7 +58,7 @@ class RegisterController extends GetxController {
     error.value = null;
     final success = await auth.registerWithEmail(
       name: nameController.text.trim(),
-      email: emailController.text.trim(),
+      email: emailController.text.trim().toLowerCase(),
       password: passwordController.text,
       phone: phoneController.text.trim(),
       address: addressController.text.trim(),
@@ -78,7 +78,7 @@ class RegisterController extends GetxController {
     error.value = null;
     final success = await auth.registerWithGoogle(
       email: emailController.text.trim().isNotEmpty
-          ? emailController.text.trim()
+          ? emailController.text.trim().toLowerCase()
           : 'user${DateTime.now().millisecondsSinceEpoch}@google.com',
       name: nameController.text.trim().isNotEmpty ? nameController.text.trim() : null,
       phone: phoneController.text.trim(),

@@ -1,12 +1,9 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 
-import '../config/app_config.dart';
 import '../network/network_service.dart';
-import 'activity_log_firestore_data_source.dart';
 import 'activity_log_service.dart';
 
 class SyncService extends GetxService {
@@ -17,8 +14,6 @@ class SyncService extends GetxService {
   late final Future<void> _ready;
   late final ActivityLogService _logs;
   NetworkService? _network;
-  ActivityLogFirestoreDataSource? _logsRemote;
-  late final AppConfig _config;
 
   @override
   void onInit() {
@@ -28,11 +23,7 @@ class SyncService extends GetxService {
 
   Future<void> _init() async {
     _logs = Get.find<ActivityLogService>();
-    _config = Get.find<AppConfig>();
     _network = Get.isRegistered<NetworkService>() ? Get.find<NetworkService>() : null;
-    if (_config.backend == BackendMode.firebase) {
-      _logsRemote = ActivityLogFirestoreDataSource(FirebaseFirestore.instance);
-    }
     _timer = Timer.periodic(_interval, (_) => syncAll());
   }
 
@@ -41,7 +32,7 @@ class SyncService extends GetxService {
   }
 
   Future<void> syncActivityLogs() async {
-    if (_network == null && _logsRemote == null) return;
+    if (_network == null) return;
     await _ready;
     final pending = await _logs.getUnsynced();
     if (pending.isEmpty) return;
@@ -50,11 +41,7 @@ class SyncService extends GetxService {
     for (final log in pending) {
       if (log.id == null) continue;
       try {
-        if (_logsRemote != null) {
-          await _logsRemote!.add(log);
-        } else {
-          await _uploadActivityLog(log);
-        }
+        await _uploadActivityLog(log);
         syncedIds.add(log.id!);
       } on DioException catch (_) {
         // Keep pending, retry next cycle.

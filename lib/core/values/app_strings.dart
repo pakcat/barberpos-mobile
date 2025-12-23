@@ -42,10 +42,10 @@ class AppStrings {
   static const String loginTitle = 'Masuk Backoffice';
   static const String loginSubtitle = 'Gunakan akun Anda sesuai peran.';
   static const String usernameLabel = 'Email atau Username';
-  static const String passwordLabel = 'Password';
+  static const String passwordLabel = 'Password / PIN';
   static const String forgotPassword = 'Lupa password?';
   static const String loginButton = 'Masuk';
-  static const String staffLoginButton = 'Login Karyawan (Tutup Buku)';
+  static const String staffLoginButton = 'Login Karyawan (PIN)';
   static const String requiredField = 'Wajib diisi';
   static const String contactAdmin = 'Hubungi admin untuk reset password.';
   static const String registerTitle = 'Daftar Akun Baru';
