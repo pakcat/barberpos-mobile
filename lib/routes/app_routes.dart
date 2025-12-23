@@ -1,0 +1,36 @@
+abstract class Routes {
+  Routes._();
+
+  static const String splash = '/splash';
+  static const String home = '/';
+  static const String cashier = '/cashier';
+  static const String orderDetail = '/order-detail';
+  static const String stylist = '/stylist';
+  static const String payment = '/payment';
+  static const String paymentSuccess = '/payment-success';
+  static const String stock = '/stock';
+  static const String stockDetail = '/stock/detail';
+  static const String stockAdjust = '/stock/adjust';
+  static const String categories = '/categories';
+  static const String categoryForm = '/categories/form';
+  static const String customers = '/customers';
+  static const String customerForm = '/customers/form';
+  static const String products = '/products';
+  static const String productForm = '/products/form';
+  static const String transactions = '/transactions';
+  static const String transactionDetail = '/transactions/detail';
+  static const String reports = '/reports';
+  static const String financeForm = '/reports/finance-form';
+  static const String settings = '/settings';
+  static const String login = '/login';
+  static const String notifications = '/notifications';
+  static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+  static const String closing = '/closing';
+  static const String employees = '/employees';
+  static const String employeeForm = '/employees/form';
+  static const String employeeDetail = '/employees/detail';
+  static const String activityLogs = '/logs';
+  static const String membership = '/membership';
+  static const String completeProfile = '/complete-profile';
+}

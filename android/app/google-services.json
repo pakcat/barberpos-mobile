@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "237896289752",
+    "project_id": "barberpos-c0a6a",
+    "storage_bucket": "barberpos-c0a6a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:237896289752:android:8d22b29fa4fbd3551676ad",
+        "android_client_info": {
+          "package_name": "com.barberpos.pakcat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRKRUoMlhogVp2GQO09eYL3vdsTSJj1BU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

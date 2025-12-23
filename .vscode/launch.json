@@ -1,0 +1,34 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (Firebase backend)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define=BACKEND_MODE=firebase"
+      ]
+    },
+    {
+      "name": "Flutter (REST backend)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define=BACKEND_MODE=rest"
+      ]
+    },
+    {
+      "name": "Flutter (Local only)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define=BACKEND_MODE=local"
+      ]
+    },
+    {
+      "name": "Attach to Flutter",
+      "request": "attach",
+      "type": "dart"
+    }
+  ]
+}
