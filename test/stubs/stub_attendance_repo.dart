@@ -1,6 +1,6 @@
 import 'package:barberpos_mobile/modules/staff/data/entities/attendance_entity.dart';
 import 'package:barberpos_mobile/modules/staff/data/repositories/attendance_repository.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 class StubAttendanceRepository implements AttendanceRepository {
   final List<AttendanceEntity> _list = [];

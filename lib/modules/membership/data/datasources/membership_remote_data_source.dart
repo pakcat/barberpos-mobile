@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 
-import '../entities/membership_state_entity.dart';
 import '../entities/membership_topup_entity.dart';
 
 class MembershipRemoteDataSource {

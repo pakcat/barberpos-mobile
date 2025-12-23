@@ -41,9 +41,10 @@ class PushNotificationService extends GetxService {
       final token = await _messaging.getToken();
       if (token != null) {
         await _logs.add(title: 'Token FCM siap', message: token, type: ActivityLogType.info);
-        if (_config.backend == BackendMode.rest && _network != null) {
+        final network = _network;
+        if (_config.backend == BackendMode.rest && network != null) {
           try {
-            await _network!.dio.post(
+            await network.dio.post(
               '/notifications/token',
               data: {
                 'token': token,
@@ -53,7 +54,7 @@ class PushNotificationService extends GetxService {
                         ? 'ios'
                         : 'unknown',
               },
-            );
+              );
           } catch (_) {
             // ignore failure to register token, will retry on next app start
           }

@@ -67,14 +67,17 @@ class MembershipController extends GetxController {
   Future<void> _load() async {
     if (_useRest) {
       try {
-        usedQuota.value = await _rest!.fetchUsedQuota();
-        final data = await _rest!.fetchTopups();
-        topups.assignAll(data.map(_map));
-        for (final t in data) {
-          await repo.addTopup(t);
+        final rest = _rest;
+        if (rest != null) {
+          usedQuota.value = await rest.fetchUsedQuota();
+          final data = await rest.fetchTopups();
+          topups.assignAll(data.map(_map));
+          for (final t in data) {
+            await repo.addTopup(t);
+          }
+          await repo.setUsedQuota(usedQuota.value);
+          return;
         }
-        await repo.setUsedQuota(usedQuota.value);
-        return;
       } catch (_) {}
     }
 
@@ -118,8 +121,11 @@ class MembershipController extends GetxController {
     );
     final entity = _toEntity(topups.first);
     repo.addTopup(entity);
-    if (_useRest && _rest != null) {
-      _rest!.addTopup(entity);
+    if (_useRest) {
+      final rest = _rest;
+      if (rest != null) {
+        rest.addTopup(entity);
+      }
     } else {
       final remote = _remote;
       if (_useFirebase && remote != null) {
@@ -133,8 +139,11 @@ class MembershipController extends GetxController {
   Future<void> updateUsage(int value) async {
     usedQuota.value = value;
     await repo.setUsedQuota(value);
-    if (_useRest && _rest != null) {
-      _rest!.setUsedQuota(value);
+    if (_useRest) {
+      final rest = _rest;
+      if (rest != null) {
+        rest.setUsedQuota(value);
+      }
     } else {
       final remote = _remote;
       if (_useFirebase && remote != null) {

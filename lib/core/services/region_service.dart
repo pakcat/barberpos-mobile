@@ -51,7 +51,8 @@ class RegionService extends GetxService {
     }
     if (_backend == BackendMode.rest && _client != null) {
       try {
-        final response = await _client!.get<List<dynamic>>('/regions');
+        final client = _client;
+        final response = await client.get<List<dynamic>>('/regions');
         final data = response.data ?? <dynamic>[];
         final parsed = data.map(RegionDto.fromJson).where((e) => e.name.isNotEmpty).toList();
         if (parsed.isNotEmpty) {

@@ -5,6 +5,7 @@ import '../../../../core/config/app_config.dart';
 import '../datasources/attendance_remote_data_source.dart';
 import '../datasources/attendance_firestore_data_source.dart';
 import '../entities/attendance_entity.dart';
+import '../models/attendance_dto.dart';
 
 class AttendanceRepository {
   AttendanceRepository(
@@ -30,8 +31,9 @@ class AttendanceRepository {
         final today = DateTime.now();
         final list = await _rest!.getMonth(name, today);
         if (list.isNotEmpty) {
-          await _persistAll(list);
-          return list.firstWhereOrNull(
+          final entities = list.map(_toEntity).toList();
+          await _persistAll(entities);
+          return entities.firstWhereOrNull(
             (a) => a.date.year == today.year && a.date.month == today.month && a.date.day == today.day,
           );
         }
@@ -79,8 +81,9 @@ class AttendanceRepository {
       try {
         final remote = await _rest!.getMonth(name, month);
         if (remote.isNotEmpty) {
-          await _persistAll(remote);
-          return remote;
+          final entities = remote.map(_toEntity).toList();
+          await _persistAll(entities);
+          return entities;
         }
       } catch (_) {}
     }
@@ -132,4 +135,6 @@ class AttendanceRepository {
       await _isar.attendanceEntitys.putAll(items.toList());
     });
   }
+
+  AttendanceEntity _toEntity(AttendanceDto dto) => dto.toEntity();
 }

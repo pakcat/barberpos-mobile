@@ -40,7 +40,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
     // REST takes precedence when configured
     if (_restRemote != null) {
       try {
-        final remoteProfile = await _restRemote!.load();
+        final rest = _restRemote;
+        final remoteProfile = await rest.load();
         if (remoteProfile != null) {
           await _local.save(remoteProfile);
           return remoteProfile;
@@ -48,7 +49,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
       } catch (_) {}
     } else if (_firebaseRemote != null && user != null) {
       try {
-        final remoteProfile = await _firebaseRemote!.load(user.id);
+        final fb = _firebaseRemote;
+        final remoteProfile = await fb.load(user.id);
         if (remoteProfile != null) {
           await _local.save(remoteProfile);
           return remoteProfile;
@@ -64,11 +66,13 @@ class SettingsRepositoryImpl implements SettingsRepository {
     final user = _auth.currentUser;
     if (_restRemote != null) {
       try {
-        await _restRemote!.save(profile);
+        final rest = _restRemote;
+        await rest.save(profile);
       } catch (_) {}
     } else if (_firebaseRemote != null && user != null) {
       try {
-        await _firebaseRemote!.save(user.id, profile);
+        final fb = _firebaseRemote;
+        await fb.save(user.id, profile);
       } catch (_) {}
     }
   }

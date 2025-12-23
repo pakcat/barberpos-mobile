@@ -69,9 +69,6 @@ class SplashController extends GetxController {
         user.region.trim().isNotEmpty) {
       return false;
     }
-    print(
-      'DEBUG: Profile Incomplete. Failing checks: Phone=${user.phone.trim().isEmpty} ("${user.phone}"), Address=${user.address.trim().isEmpty} ("${user.address}"), Region=${user.region.trim().isEmpty} ("${user.region}")',
-    );
     if (_regionService.regions.isEmpty) {
       await _regionService.load();
     }

@@ -54,6 +54,8 @@ class ReportsController extends GetxController {
     _load();
   }
 
+  @override
+  @override
   Future<void> refresh() => _load();
 
   Future<void> _load() async {

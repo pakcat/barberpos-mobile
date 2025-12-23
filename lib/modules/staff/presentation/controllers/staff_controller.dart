@@ -49,12 +49,14 @@ class StaffController extends GetxController {
   }
 
   bool get _useFirebase => _config.backend == BackendMode.firebase && _remote != null;
+  bool get _useRest => _config.backend == BackendMode.rest && _rest != null;
 
   Future<void> _load() async {
     loading.value = true;
-    if (_config.backend == BackendMode.rest && _rest != null) {
+    if (_useRest) {
       try {
-        final remote = await _rest!.fetchAll();
+        final rest = _rest!;
+        final remote = await rest.fetchAll();
         await repo.replaceAll(remote);
         employees.assignAll(remote.map(_map));
         loading.value = false;
@@ -63,9 +65,12 @@ class StaffController extends GetxController {
     }
     if (_useFirebase) {
       try {
-        final remote = await _remote!.fetchAll();
-        await repo.replaceAll(remote);
-        employees.assignAll(remote.map(_map));
+        final fb = _remote;
+        final remote = await fb?.fetchAll();
+        if (remote != null) {
+          await repo.replaceAll(remote);
+          employees.assignAll(remote.map(_map));
+        }
       } catch (_) {
         final data = await repo.getAll();
         employees.assignAll(data.map(_map));
@@ -88,8 +93,9 @@ class StaffController extends GetxController {
     }
     employees.refresh();
     final entity = _toEntity(employee);
-    if (_config.backend == BackendMode.rest && _rest != null) {
-      _rest!.upsert(entity);
+    if (_useRest) {
+      final rest = _rest!;
+      rest.upsert(entity);
     } else if (_useFirebase) {
       _remote!.upsert(entity);
     }
@@ -139,8 +145,9 @@ class StaffController extends GetxController {
     employees.refresh();
     final deleteId = int.tryParse(employee.id) ?? employee.id.hashCode;
     repo.delete(deleteId);
-    if (_config.backend == BackendMode.rest && _rest != null) {
-      _rest!.delete(deleteId);
+    if (_useRest) {
+      final rest = _rest!;
+      rest.delete(deleteId);
     } else if (_useFirebase) {
       _remote!.delete(_toEntity(employee));
     }

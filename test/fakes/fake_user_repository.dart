@@ -1,7 +1,7 @@
 import 'package:barberpos_mobile/core/database/entities/user_entity.dart';
 import 'package:barberpos_mobile/core/repositories/user_repository.dart';
 import 'package:barberpos_mobile/core/services/auth_service.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 class FakeUserRepository implements UserRepository {
   final Map<int, UserEntity> _store = {};

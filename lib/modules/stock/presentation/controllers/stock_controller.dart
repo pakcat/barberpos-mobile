@@ -54,9 +54,10 @@ class StockController extends GetxController {
   }
 
   Future<void> _load() async {
-    if (_config.backend == BackendMode.rest && _rest != null) {
+    final rest = _rest;
+    if (_config.backend == BackendMode.rest && rest != null) {
       try {
-        final data = await _rest!.fetchAll();
+        final data = await rest.fetchAll();
         await repo.replaceAll(data);
         products.assignAll(data.map(_map));
         if (products.isNotEmpty && selected.value == null) {
@@ -99,6 +100,7 @@ class StockController extends GetxController {
     if (!canSubmit) return;
     final item = selected.value;
     if (item == null) return;
+    final rest = _rest;
     final qty = int.tryParse(adjustmentValue.value) ?? 0;
     if (qty < 0) return;
     final type = adjustmentType.value!;
@@ -106,9 +108,9 @@ class StockController extends GetxController {
     int newStock = item.stock;
     int delta = 0;
 
-    if (_config.backend == BackendMode.rest && _rest != null) {
+    if (_config.backend == BackendMode.rest && rest != null) {
       try {
-        final adjusted = await _rest!.adjust(
+        final adjusted = await rest.adjust(
           stockId: int.tryParse(item.id) ?? item.id.hashCode,
           change: qty,
           type: type.name,
@@ -117,9 +119,9 @@ class StockController extends GetxController {
         );
         newStock = adjusted.stock;
         delta = qty;
-        await repo.replaceAll(await _rest!.fetchAll());
-        final refreshed = await repo.getAll();
-        products.assignAll(refreshed.map(_map));
+        final latest = await rest.fetchAll();
+        await repo.replaceAll(latest);
+        products.assignAll(latest.map(_map));
       } catch (_) {
         // fallback to local adjust below
       }
@@ -169,8 +171,8 @@ class StockController extends GetxController {
     );
 
     if (_config.backend == BackendMode.firebase && _historyFirebase != null) {
-      await _historyFirebase!.appendHistory(
-        productId: product.id,
+      await _historyFirebase.appendHistory(
+        productId: productId,
         change: delta,
         remaining: newStock,
         type: type.name,
@@ -200,10 +202,11 @@ class StockController extends GetxController {
     final current = selected.value;
     if (current == null) return;
     final productId = int.tryParse(current.id) ?? current.id.hashCode;
+    final rest = _rest;
 
-    if (_config.backend == BackendMode.rest && _rest != null) {
+    if (_config.backend == BackendMode.rest && rest != null) {
       try {
-        final remote = await _rest!.history(productId, limit: 50);
+        final remote = await rest.history(productId, limit: 50);
         histories.assignAll(
           remote.map(
             (h) => StockHistory(
@@ -221,7 +224,7 @@ class StockController extends GetxController {
 
     if (_config.backend != BackendMode.firebase || _historyFirebase == null) return;
     try {
-      final remote = await _historyFirebase!.fetchHistory(productId: productId, limit: 50);
+      final remote = await _historyFirebase.fetchHistory(productId: productId, limit: 50);
       histories.assignAll(
         remote.map(
           (h) => StockHistory(

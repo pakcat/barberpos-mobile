@@ -1,7 +1,7 @@
 import 'package:barberpos_mobile/core/repositories/user_repository.dart';
 import 'package:barberpos_mobile/core/services/auth_service.dart';
 import 'package:barberpos_mobile/core/database/entities/user_entity.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../fakes/fake_activity_log_service.dart';
 import '../fakes/fake_network_service.dart';
 import '../fakes/fake_session_service.dart';

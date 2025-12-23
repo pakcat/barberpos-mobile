@@ -1,6 +1,8 @@
+import 'package:barberpos_mobile/modules/reports/data/datasources/finance_remote_data_source.dart';
+import 'package:barberpos_mobile/modules/reports/data/datasources/reports_firestore_data_source.dart';
 import 'package:barberpos_mobile/modules/reports/data/entities/finance_entry_entity.dart';
 import 'package:barberpos_mobile/modules/reports/data/repositories/reports_repository.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 class StubReportsRepository implements ReportsRepository {
   final List<FinanceEntryEntity> _entries = [
@@ -42,4 +44,10 @@ class StubReportsRepository implements ReportsRepository {
       ..clear()
       ..addAll(items);
   }
+
+  @override
+  ReportsFirestoreDataSource? get remote => null;
+
+  @override
+  FinanceRemoteDataSource? get restRemote => null;
 }

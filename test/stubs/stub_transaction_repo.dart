@@ -1,7 +1,8 @@
 import 'package:barberpos_mobile/modules/transactions/data/datasources/transaction_firestore_data_source.dart';
+import 'package:barberpos_mobile/modules/transactions/data/datasources/transaction_remote_data_source.dart';
 import 'package:barberpos_mobile/modules/transactions/data/entities/transaction_entity.dart';
 import 'package:barberpos_mobile/modules/transactions/data/repositories/transaction_repository.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 class StubTransactionRepository implements TransactionRepository {
   final List<TransactionEntity> _txs = [
@@ -46,4 +47,7 @@ class StubTransactionRepository implements TransactionRepository {
 
   @override
   TransactionFirestoreDataSource? get remote => null;
+
+  @override
+  TransactionRemoteDataSource? get restRemote => null;
 }

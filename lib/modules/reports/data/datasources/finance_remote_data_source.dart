@@ -45,7 +45,7 @@ class FinanceRemoteDataSource {
     return e;
   }
 
-  FinanceEntryType _typeFromString(String v) {
-    return v.toLowerCase() == 'expense' ? FinanceEntryType.expense : FinanceEntryType.revenue;
+  EntryTypeEntity _typeFromString(String v) {
+    return v.toLowerCase() == 'expense' ? EntryTypeEntity.expense : EntryTypeEntity.revenue;
   }
 }

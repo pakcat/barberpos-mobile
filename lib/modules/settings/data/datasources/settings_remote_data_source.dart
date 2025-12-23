@@ -31,7 +31,6 @@ class SettingsRemoteDataSource {
         'roundingPrice': profile.roundingPrice,
         'autoBackup': profile.autoBackup,
         'cashierPin': profile.cashierPin,
-        'currencyCode': profile.currencyCode,
       },
     );
   }
@@ -51,7 +50,6 @@ class SettingsRemoteDataSource {
       roundingPrice: data['roundingPrice'] == true,
       autoBackup: data['autoBackup'] == true,
       cashierPin: data['cashierPin'] == true,
-      currencyCode: data['currencyCode']?.toString() ?? 'IDR',
     );
   }
 }
