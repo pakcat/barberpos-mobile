@@ -1,5 +1,5 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:dio/dio.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
@@ -14,18 +14,18 @@ class RegionService extends GetxService {
     required Isar isar,
     AppConfig? config,
     FirebaseFirestore? firestore,
-  }) : // _client = client != null
-       //     ? client.dio
-       //     : (Get.isRegistered<NetworkService>() ? Get.find<NetworkService>().dio : null),
-       _isar = isar,
-       _backend =
-           config?.backend ??
-           (Get.isRegistered<AppConfig>() ? Get.find<AppConfig>().backend : BackendMode.rest),
-       _firestore =
-           firestore ??
-           (config?.backend == BackendMode.firebase ? FirebaseFirestore.instance : null);
+  })  : _client = client != null
+            ? client.dio
+            : (Get.isRegistered<NetworkService>() ? Get.find<NetworkService>().dio : null),
+        _isar = isar,
+        _backend =
+            config?.backend ??
+            (Get.isRegistered<AppConfig>() ? Get.find<AppConfig>().backend : BackendMode.rest),
+        _firestore =
+            firestore ??
+            (config?.backend == BackendMode.firebase ? FirebaseFirestore.instance : null);
 
-  // final Dio? _client;
+  final Dio? _client;
   final Isar _isar;
   final BackendMode _backend;
   final FirebaseFirestore? _firestore;
@@ -49,18 +49,20 @@ class RegionService extends GetxService {
       final ok = await _loadFromFirebase();
       if (ok) return;
     }
-    // try {
-    //   final response = await _client?.get<List<dynamic>>('/regions');
-    //   final data = response?.data ?? <dynamic>[];
-    //   final parsed = data.map(RegionDto.fromJson).where((e) => e.name.isNotEmpty).toList();
-    //   if (parsed.isNotEmpty) {
-    //     regions.assignAll(parsed.map((e) => e.name));
-    //     await _persist(parsed);
-    //     return;
-    //   }
-    // } catch (_) {
-    //   // ignore and fallback to local stub
-    // }
+    if (_backend == BackendMode.rest && _client != null) {
+      try {
+        final response = await _client!.get<List<dynamic>>('/regions');
+        final data = response.data ?? <dynamic>[];
+        final parsed = data.map(RegionDto.fromJson).where((e) => e.name.isNotEmpty).toList();
+        if (parsed.isNotEmpty) {
+          regions.assignAll(parsed.map((e) => e.name));
+          await _persist(parsed);
+          return;
+        }
+      } catch (_) {
+        // ignore and fallback
+      }
+    }
     if (regions.isEmpty) {
       final fallbackDtos = _fallbackRegions.map((e) => RegionDto(name: e)).toList();
       regions.assignAll(fallbackDtos.map((e) => e.name));
@@ -95,13 +97,13 @@ class RegionService extends GetxService {
   }
 
   List<String> get _fallbackRegions => const [
-    'Jakarta',
-    'Bandung',
-    'Surabaya',
-    'Semarang',
-    'Yogyakarta',
-    'Medan',
-    'Denpasar',
-    'Makassar',
-  ];
+        'Jakarta',
+        'Bandung',
+        'Surabaya',
+        'Semarang',
+        'Yogyakarta',
+        'Medan',
+        'Denpasar',
+        'Makassar',
+      ];
 }

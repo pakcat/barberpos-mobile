@@ -10,15 +10,20 @@ import '../services/push_notification_service.dart';
 import '../repositories/user_repository.dart';
 import '../repositories/user_repository_impl.dart';
 import '../../modules/management/data/repositories/management_repository.dart';
+import '../../modules/management/data/datasources/management_remote_data_source.dart';
 import '../../modules/product/data/repositories/product_repository.dart';
 import '../../modules/product/data/datasources/product_firestore_data_source.dart';
 import '../../modules/staff/data/repositories/staff_repository.dart';
+import '../../modules/staff/data/datasources/staff_remote_data_source.dart';
 import '../../modules/reports/data/repositories/reports_repository.dart';
 import '../../modules/membership/data/repositories/membership_repository.dart';
+import '../../modules/membership/data/datasources/membership_remote_data_source.dart';
 import '../../modules/transactions/data/repositories/transaction_repository.dart';
 import '../../modules/transactions/data/datasources/transaction_firestore_data_source.dart';
+import '../../modules/transactions/data/datasources/transaction_remote_data_source.dart';
 import '../../modules/stock/data/repositories/stock_repository.dart';
 import '../../modules/stock/data/datasources/stock_firestore_data_source.dart';
+import '../../modules/stock/data/datasources/stock_remote_data_source.dart';
 import '../../modules/reports/data/datasources/reports_firestore_data_source.dart';
 import '../services/session_service.dart';
 import 'app_config.dart';
@@ -42,6 +47,7 @@ class GlobalBindings extends Bindings {
     // Repositories always backed by Isar for offline; remote sync depends on backend mode.
     Get.lazyPut<RegionService>(
       () => RegionService(
+        client: Get.find<NetworkService>(),
         isar: db.isar,
         config: config,
         firestore: config.backend == BackendMode.firebase ? FirebaseFirestore.instance : null,
@@ -49,7 +55,14 @@ class GlobalBindings extends Bindings {
       fenix: true,
     );
     Get.lazyPut<UserRepository>(() => UserRepositoryImpl(db.isar), fenix: true);
-    Get.put<ManagementRepository>(ManagementRepository(db.isar));
+    Get.put<ManagementRepository>(
+      ManagementRepository(
+        db.isar,
+        remote: config.backend == BackendMode.rest
+            ? ManagementRemoteDataSource(Get.find<NetworkService>().dio)
+            : null,
+      ),
+    );
     Get.lazyPut<ProductRepository>(
       () => ProductRepository(
         db.isar,
@@ -59,7 +72,15 @@ class GlobalBindings extends Bindings {
       ),
       fenix: true,
     );
-    Get.lazyPut<StaffRepository>(() => StaffRepository(db.isar), fenix: true);
+    Get.lazyPut<StaffRepository>(
+      () => StaffRepository(
+        db.isar,
+        remote: config.backend == BackendMode.rest
+            ? StaffRemoteDataSource(Get.find<NetworkService>().dio)
+            : null,
+      ),
+      fenix: true,
+    );
     Get.lazyPut<ReportsRepository>(
       () => ReportsRepository(
         db.isar,
@@ -69,12 +90,23 @@ class GlobalBindings extends Bindings {
       ),
       fenix: true,
     );
-    Get.lazyPut<MembershipRepository>(() => MembershipRepository(db.isar), fenix: true);
+    Get.lazyPut<MembershipRepository>(
+      () => MembershipRepository(
+        db.isar,
+        remote: config.backend == BackendMode.rest
+            ? MembershipRemoteDataSource(Get.find<NetworkService>().dio)
+            : null,
+      ),
+      fenix: true,
+    );
     Get.put<TransactionRepository>(
       TransactionRepository(
         db.isar,
         remote: config.backend == BackendMode.firebase
             ? TransactionFirestoreDataSource(FirebaseFirestore.instance)
+            : null,
+        restRemote: config.backend == BackendMode.rest
+            ? TransactionRemoteDataSource(Get.find<NetworkService>().dio)
             : null,
       ),
       permanent: true,
@@ -82,7 +114,15 @@ class GlobalBindings extends Bindings {
     Get.put<ClosingRepository>(ClosingRepository(db.isar), permanent: true);
     Get.lazyPut<StockRepository>(
       // Stok mengikuti data produk; tidak memakai koleksi Firestore terpisah
-      () => StockRepository(db.isar),
+      () => StockRepository(
+        db.isar,
+        restRemote: config.backend == BackendMode.rest
+            ? StockRemoteDataSource(Get.find<NetworkService>().dio)
+            : null,
+        remote: config.backend == BackendMode.firebase
+            ? StockFirestoreDataSource(FirebaseFirestore.instance)
+            : null,
+      ),
       fenix: true,
     );
     Get.lazyPut<SessionService>(() => SessionService(db.isar), fenix: true);
@@ -105,10 +145,10 @@ class GlobalBindings extends Bindings {
       fenix: true,
     );
 
-    // Firebase Cloud Messaging hanya saat backend Firebase.
-    if (config.backend == BackendMode.firebase) {
+    // FCM token: register for firebase or rest backend (rest will store token via API).
+    if (config.backend == BackendMode.firebase || config.backend == BackendMode.rest) {
       Get.lazyPut<PushNotificationService>(
-        () => PushNotificationService(config: config),
+        () => PushNotificationService(config: config, network: Get.find<NetworkService>()),
         fenix: true,
       );
     }

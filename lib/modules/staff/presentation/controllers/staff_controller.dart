@@ -3,9 +3,11 @@ import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/network/network_service.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../transactions/data/repositories/transaction_repository.dart';
 import '../../data/datasources/staff_firestore_data_source.dart';
+import '../../data/datasources/staff_remote_data_source.dart';
 import '../../data/repositories/staff_repository.dart';
 import '../../data/entities/employee_entity.dart';
 import '../models/employee_model.dart';
@@ -14,7 +16,9 @@ class StaffController extends GetxController {
   StaffController({
     StaffRepository? repository,
     StaffFirestoreDataSource? firebase,
+    StaffRemoteDataSource? restRemote,
     AppConfig? config,
+    NetworkService? network,
     FirebaseFirestore? firestore,
   })  : repo = repository ?? Get.find<StaffRepository>(),
         txRepo = Get.find<TransactionRepository>(),
@@ -23,6 +27,10 @@ class StaffController extends GetxController {
         _remote = firebase ??
             ((config ?? Get.find<AppConfig>()).backend == BackendMode.firebase
                 ? StaffFirestoreDataSource(firestore ?? FirebaseFirestore.instance)
+                : null),
+        _rest = restRemote ??
+            ((config ?? Get.find<AppConfig>()).backend == BackendMode.rest
+                ? StaffRemoteDataSource((network ?? Get.find<NetworkService>()).dio)
                 : null);
 
   final StaffRepository repo;
@@ -32,6 +40,7 @@ class StaffController extends GetxController {
   final ActivityLogService logs;
   final AppConfig _config;
   final StaffFirestoreDataSource? _remote;
+  final StaffRemoteDataSource? _rest;
 
   @override
   void onInit() {
@@ -43,6 +52,15 @@ class StaffController extends GetxController {
 
   Future<void> _load() async {
     loading.value = true;
+    if (_config.backend == BackendMode.rest && _rest != null) {
+      try {
+        final remote = await _rest!.fetchAll();
+        await repo.replaceAll(remote);
+        employees.assignAll(remote.map(_map));
+        loading.value = false;
+        return;
+      } catch (_) {}
+    }
     if (_useFirebase) {
       try {
         final remote = await _remote!.fetchAll();
@@ -70,7 +88,9 @@ class StaffController extends GetxController {
     }
     employees.refresh();
     final entity = _toEntity(employee);
-    if (_useFirebase) {
+    if (_config.backend == BackendMode.rest && _rest != null) {
+      _rest!.upsert(entity);
+    } else if (_useFirebase) {
       _remote!.upsert(entity);
     }
     repo.upsert(entity);
@@ -117,8 +137,11 @@ class StaffController extends GetxController {
   void delete(Employee employee) {
     employees.removeWhere((e) => e.id == employee.id);
     employees.refresh();
-    repo.delete(employee.id.hashCode);
-    if (_useFirebase) {
+    final deleteId = int.tryParse(employee.id) ?? employee.id.hashCode;
+    repo.delete(deleteId);
+    if (_config.backend == BackendMode.rest && _rest != null) {
+      _rest!.delete(deleteId);
+    } else if (_useFirebase) {
       _remote!.delete(_toEntity(employee));
     }
     Get.back();

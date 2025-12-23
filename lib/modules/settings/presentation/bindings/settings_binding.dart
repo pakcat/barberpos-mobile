@@ -11,6 +11,7 @@ import '../controllers/settings_controller.dart';
 import '../../../../core/services/session_service.dart';
 import '../../../../core/network/network_service.dart';
 import '../../data/datasources/settings_firestore_data_source.dart';
+import '../../data/datasources/settings_remote_data_source.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/services/auth_service.dart';
 
@@ -40,18 +41,22 @@ class SettingsBinding extends Bindings {
     Get.lazyPut<SettingsLocalDataSource>(
       () => SettingsLocalDataSourceImpl(dbReady),
     );
-    SettingsFirestoreDataSource? remote;
+    SettingsFirestoreDataSource? firebaseRemote;
+    SettingsRemoteDataSource? restRemote;
     final config = Get.find<AppConfig>();
     if (config.backend == BackendMode.firebase) {
-      remote = SettingsFirestoreDataSource(FirebaseFirestore.instance);
+      firebaseRemote = SettingsFirestoreDataSource(FirebaseFirestore.instance);
+    } else if (config.backend == BackendMode.rest) {
+      restRemote = SettingsRemoteDataSource(Get.find<NetworkService>().dio);
     }
     Get.lazyPut<SettingsRepository>(
       () => SettingsRepositoryImpl(
         Get.find<SettingsLocalDataSource>(),
-        remote: remote,
+        remote: firebaseRemote,
+        restRemote: restRemote,
         config: config,
         auth: Get.find<AuthService>(),
-        firestore: remote == null ? null : FirebaseFirestore.instance,
+        firestore: firebaseRemote == null ? null : FirebaseFirestore.instance,
       ),
     );
     Get.lazyPut<GetSettingsUseCase>(

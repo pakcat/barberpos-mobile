@@ -1,17 +1,24 @@
-﻿import 'package:isar_community/isar.dart';
-
-import '../entities/transaction_entity.dart';
+import 'package:isar_community/isar.dart';
 
 import '../datasources/transaction_firestore_data_source.dart';
+import '../datasources/transaction_remote_data_source.dart';
+import '../entities/transaction_entity.dart';
 
 class TransactionRepository {
-  TransactionRepository(this._isar, {this.remote});
+  TransactionRepository(this._isar, {this.remote, this.restRemote});
 
   final Isar _isar;
   final TransactionFirestoreDataSource? remote;
+  final TransactionRemoteDataSource? restRemote;
 
   Future<List<TransactionEntity>> getAll() async {
-    // Try remote first if available
+    if (restRemote != null) {
+      try {
+        final items = await restRemote!.fetchAll();
+        await replaceAll(items);
+        return items;
+      } catch (_) {}
+    }
     if (remote != null) {
       try {
         final items = await remote!.fetchAll();
@@ -26,7 +33,9 @@ class TransactionRepository {
 
   Future<Id> upsert(TransactionEntity tx) async {
     final id = await _isar.writeTxn(() => _isar.transactionEntitys.put(tx));
-    if (remote != null) {
+    if (restRemote != null) {
+      // creation/update via API handled elsewhere (cashier/order flow)
+    } else if (remote != null) {
       try {
         await remote!.upsert(tx);
       } catch (_) {
@@ -55,4 +64,3 @@ class TransactionRepository {
     }
   }
 }
-

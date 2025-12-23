@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/network/network_service.dart';
 import '../../../cashier/presentation/controllers/cashier_controller.dart';
 import '../../../product/data/repositories/product_repository.dart';
 import '../../../product/presentation/controllers/product_controller.dart';
 import '../../data/datasources/stock_history_firestore_data_source.dart';
+import '../../data/datasources/stock_remote_data_source.dart';
 import '../../data/entities/stock_entity.dart';
 import '../../data/repositories/stock_repository.dart';
 import '../models/stock_models.dart';
@@ -15,6 +17,7 @@ class StockController extends GetxController {
     StockRepository? repository,
     ProductRepository? productRepository,
     StockHistoryFirestoreDataSource? historyFirebase,
+    StockRemoteDataSource? restRemote,
     AppConfig? config,
     FirebaseFirestore? firestore,
   })  : repo = repository ?? Get.find<StockRepository>(),
@@ -23,12 +26,17 @@ class StockController extends GetxController {
         _historyFirebase = historyFirebase ??
             ((config ?? Get.find<AppConfig>()).backend == BackendMode.firebase
                 ? StockHistoryFirestoreDataSource(firestore ?? FirebaseFirestore.instance)
+                : null),
+        _rest = restRemote ??
+            ((config ?? Get.find<AppConfig>()).backend == BackendMode.rest
+                ? StockRemoteDataSource(Get.find<NetworkService>().dio)
                 : null);
 
   final StockRepository repo;
   final ProductRepository _productRepo;
   final AppConfig _config;
   final StockHistoryFirestoreDataSource? _historyFirebase;
+  final StockRemoteDataSource? _rest;
 
   final RxList<StockItem> products = <StockItem>[].obs;
 
@@ -46,6 +54,19 @@ class StockController extends GetxController {
   }
 
   Future<void> _load() async {
+    if (_config.backend == BackendMode.rest && _rest != null) {
+      try {
+        final data = await _rest!.fetchAll();
+        await repo.replaceAll(data);
+        products.assignAll(data.map(_map));
+        if (products.isNotEmpty && selected.value == null) {
+          selected.value = products.first;
+        }
+        await _loadHistory();
+        return;
+      } catch (_) {}
+    }
+
     final data = await repo.getAll();
     products.assignAll(data.map(_map));
     if (products.isNotEmpty && selected.value == null) {
@@ -82,29 +103,51 @@ class StockController extends GetxController {
     if (qty < 0) return;
     final type = adjustmentType.value!;
     final productId = int.tryParse(item.id) ?? item.id.hashCode;
-    final product = await _productRepo.getById(productId);
-    if (product == null) return;
+    int newStock = item.stock;
+    int delta = 0;
 
-    int newStock = product.stock;
-    int delta;
-    switch (type) {
-      case StockAdjustmentType.add:
-        newStock = product.stock + qty;
+    if (_config.backend == BackendMode.rest && _rest != null) {
+      try {
+        final adjusted = await _rest!.adjust(
+          stockId: int.tryParse(item.id) ?? item.id.hashCode,
+          change: qty,
+          type: type.name,
+          note: note.value.isEmpty ? null : note.value,
+          productId: productId,
+        );
+        newStock = adjusted.stock;
         delta = qty;
-        break;
-      case StockAdjustmentType.reduce:
-        newStock = (product.stock - qty).clamp(0, 1 << 31);
-        delta = -qty;
-        break;
-      case StockAdjustmentType.recount:
-        delta = qty - product.stock;
-        newStock = qty;
-        break;
+        await repo.replaceAll(await _rest!.fetchAll());
+        final refreshed = await repo.getAll();
+        products.assignAll(refreshed.map(_map));
+      } catch (_) {
+        // fallback to local adjust below
+      }
     }
 
-    product.stock = newStock;
-    await _productRepo.upsert(product);
-    await _load();
+    if (!(_config.backend == BackendMode.rest && _rest != null)) {
+      final product = await _productRepo.getById(productId);
+      if (product == null) return;
+
+      switch (type) {
+        case StockAdjustmentType.add:
+          newStock = product.stock + qty;
+          delta = qty;
+          break;
+        case StockAdjustmentType.reduce:
+          newStock = (product.stock - qty).clamp(0, 1 << 31);
+          delta = -qty;
+          break;
+        case StockAdjustmentType.recount:
+          delta = qty - product.stock;
+          newStock = qty;
+          break;
+      }
+
+      product.stock = newStock;
+      await _productRepo.upsert(product);
+      await _load();
+    }
 
     // Refresh other modules that rely on product data
     if (Get.isRegistered<ProductController>()) {
@@ -154,10 +197,29 @@ class StockController extends GetxController {
 
   Future<void> _loadHistory() async {
     histories.clear();
-    if (_config.backend != BackendMode.firebase || _historyFirebase == null) return;
     final current = selected.value;
     if (current == null) return;
     final productId = int.tryParse(current.id) ?? current.id.hashCode;
+
+    if (_config.backend == BackendMode.rest && _rest != null) {
+      try {
+        final remote = await _rest!.history(productId, limit: 50);
+        histories.assignAll(
+          remote.map(
+            (h) => StockHistory(
+              date: h['createdAt']?.toString() ?? '',
+              status: _statusLabel(_typeFromString(h['type']?.toString() ?? ''), _toInt(h['change'])),
+              quantity: _toInt(h['change']),
+              remaining: _toInt(h['remaining']),
+              type: _typeFromString(h['type']?.toString() ?? ''),
+            ),
+          ),
+        );
+        return;
+      } catch (_) {}
+    }
+
+    if (_config.backend != BackendMode.firebase || _historyFirebase == null) return;
     try {
       final remote = await _historyFirebase!.fetchHistory(productId: productId, limit: 50);
       histories.assignAll(
@@ -197,4 +259,6 @@ class StockController extends GetxController {
         return StockAdjustmentType.recount;
     }
   }
+
+  int _toInt(dynamic v) => int.tryParse(v?.toString() ?? '') ?? 0;
 }

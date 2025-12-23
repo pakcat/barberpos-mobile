@@ -1,23 +1,30 @@
-﻿import 'package:isar_community/isar.dart';
+import 'package:isar_community/isar.dart';
 
-import '../entities/finance_entry_entity.dart';
+import '../datasources/finance_remote_data_source.dart';
 import '../datasources/reports_firestore_data_source.dart';
+import '../entities/finance_entry_entity.dart';
 
 class ReportsRepository {
-  ReportsRepository(this._isar, {this.remote});
+  ReportsRepository(this._isar, {this.remote, this.restRemote});
 
   final Isar _isar;
   final ReportsFirestoreDataSource? remote;
+  final FinanceRemoteDataSource? restRemote;
 
   Future<List<FinanceEntryEntity>> getAll() async {
+    if (restRemote != null) {
+      try {
+        final items = await restRemote!.fetchAll();
+        await replaceAll(items);
+        return items;
+      } catch (_) {}
+    }
     if (remote != null) {
       try {
         final items = await remote!.fetchAll();
         await replaceAll(items);
         return items;
-      } catch (_) {
-        // Fallback to local
-      }
+      } catch (_) {}
     }
     return _isar.financeEntryEntitys.where().findAll();
   }
@@ -25,7 +32,11 @@ class ReportsRepository {
   Future<Id> upsert(FinanceEntryEntity entry) {
     return _isar.writeTxn(() async {
       final id = await _isar.financeEntryEntitys.put(entry);
-      if (remote != null) {
+      if (restRemote != null) {
+        try {
+          await restRemote!.add(entry);
+        } catch (_) {}
+      } else if (remote != null) {
         try {
           await remote!.upsert(entry);
         } catch (_) {}
@@ -51,4 +62,3 @@ class ReportsRepository {
     }
   }
 }
-
