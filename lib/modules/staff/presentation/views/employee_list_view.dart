@@ -37,6 +37,35 @@ class EmployeeListView extends GetView<StaffController> {
             prefix: Icon(Icons.search_rounded, color: Colors.white70),
           ),
           const SizedBox(height: AppDimens.spacingLg),
+          AppCard(
+            backgroundColor: AppColors.grey800,
+            borderColor: AppColors.grey700,
+            onTap: () => Get.toNamed(Routes.attendanceDaily, arguments: DateTime.now()),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_month_rounded, color: Colors.white70),
+                const SizedBox(width: AppDimens.spacingMd),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Absensi Karyawan',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                      SizedBox(height: AppDimens.spacingXs),
+                      Text(
+                        'Lihat jam check-in/check-out per tanggal',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppDimens.spacingLg),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

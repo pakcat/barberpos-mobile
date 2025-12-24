@@ -35,4 +35,6 @@ abstract class Routes {
   static const String completeProfile = '/complete-profile';
   static const String sync = '/sync';
   static const String bluetoothPrinter = '/settings/bluetooth-printer';
+  static const String attendance = '/attendance';
+  static const String attendanceDaily = '/attendance/daily';
 }

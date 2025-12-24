@@ -27,4 +27,7 @@ class StubAttendanceRepository implements AttendanceRepository {
   Future<List<String>> getStaffNames() async {
     return _list.map((e) => e.employeeName).where((e) => e.isNotEmpty).toSet().toList();
   }
+
+  @override
+  Future<List<AttendanceEntity>> getDaily(DateTime date) async => _list;
 }

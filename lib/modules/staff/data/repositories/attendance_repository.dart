@@ -50,9 +50,17 @@ class AttendanceRepository {
     if (_useRest) {
       try {
         if (entity.checkOut == null) {
-          await _rest!.checkIn(entity.employeeName, employeeId: entity.employeeId?.toInt());
+          await _rest!.checkIn(
+            entity.employeeName,
+            employeeId: entity.employeeId?.toInt(),
+            source: entity.source,
+          );
         } else {
-          await _rest!.checkOut(entity.employeeName, employeeId: entity.employeeId?.toInt());
+          await _rest!.checkOut(
+            entity.employeeName,
+            employeeId: entity.employeeId?.toInt(),
+            source: entity.source,
+          );
         }
       } catch (_) {}
     }
@@ -87,6 +95,27 @@ class AttendanceRepository {
       if (a.employeeName.isNotEmpty) names.add(a.employeeName);
     }
     return names.toList();
+  }
+
+  Future<List<AttendanceEntity>> getDaily(DateTime date) async {
+    if (_useRest) {
+      try {
+        final remote = await _rest!.getDaily(date);
+        if (remote.isNotEmpty) {
+          final entities = remote.map(_toEntity).toList();
+          await _persistAll(entities);
+          return entities;
+        }
+      } catch (_) {}
+    }
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+    final items = await _isar.attendanceEntitys
+        .filter()
+        .dateBetween(start, end, includeLower: true, includeUpper: false)
+        .findAll();
+    items.sort((a, b) => a.employeeName.compareTo(b.employeeName));
+    return items;
   }
 
   Future<void> _persistAll(Iterable<AttendanceEntity> items) async {

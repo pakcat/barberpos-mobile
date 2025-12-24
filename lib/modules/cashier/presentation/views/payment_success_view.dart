@@ -164,28 +164,16 @@ class PaymentSuccessView extends GetView<CashierController> {
                         ),
                       ),
 
-                      // Barcode (Visual)
-                      Padding(
-                        padding: const EdgeInsets.only(
+                      // Barcode (Visual) - local, no network dependency
+                      const Padding(
+                        padding: EdgeInsets.only(
                           bottom: AppDimens.spacingLg,
                           left: AppDimens.spacingLg,
                           right: AppDimens.spacingLg,
                         ),
                         child: Opacity(
                           opacity: 0.6,
-                          child: Container(
-                            height: 40,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              image: const DecorationImage(
-                                image: NetworkImage(
-                                  'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/EAN13.svg/1200px-EAN13.svg.png',
-                                ), // Placeholder barcode
-                                fit: BoxFit.fitWidth,
-                                colorFilter: ColorFilter.mode(Colors.black, BlendMode.srcIn),
-                              ),
-                            ),
-                          ),
+                          child: _FakeBarcode(height: 40),
                         ),
                       ),
                     ],
@@ -265,6 +253,39 @@ class PaymentSuccessView extends GetView<CashierController> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FakeBarcode extends StatelessWidget {
+  const _FakeBarcode({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    const pattern = <int>[
+      2, 1, 1, 3, 2, 1, 4, 1, 2, 3, 1, 1, 2, 4, 1, 3, 2, 1, 1, 2, 3, 1,
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final total = pattern.fold<int>(0, (a, b) => a + b);
+        final unit = constraints.maxWidth / total;
+        return SizedBox(
+          height: height,
+          width: double.infinity,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < pattern.length; i++)
+                Container(
+                  width: unit * pattern[i],
+                  color: i.isEven ? Colors.black : Colors.transparent,
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

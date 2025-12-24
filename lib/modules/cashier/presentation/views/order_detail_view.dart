@@ -299,7 +299,14 @@ class _StylistChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(radius: 14, backgroundImage: NetworkImage(stylist.avatar)),
+            CircleAvatar(
+              radius: 14,
+              backgroundImage:
+                  stylist.avatar.trim().isEmpty ? null : NetworkImage(stylist.avatar),
+              child: stylist.avatar.trim().isEmpty
+                  ? const Icon(Icons.person_rounded, size: 14, color: Colors.white70)
+                  : null,
+            ),
             const SizedBox(width: AppDimens.spacingSm),
             Text(
               stylist.name,

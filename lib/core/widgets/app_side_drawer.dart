@@ -68,6 +68,12 @@ class AppSideDrawer extends StatelessWidget {
                           label: 'Kasir',
                           route: Routes.cashier,
                         ),
+                      if (isStaff)
+                        const _DrawerItem(
+                          icon: Icons.task_alt_rounded,
+                          label: 'Absensi',
+                          route: Routes.attendance,
+                        ),
                       if (isManager || isStaff)
                         const _DrawerItem(
                           icon: Icons.receipt_long_rounded,

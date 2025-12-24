@@ -89,7 +89,11 @@ class _StylistTile extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundImage: NetworkImage(stylist.avatar),
+            backgroundImage:
+                stylist.avatar.trim().isEmpty ? null : NetworkImage(stylist.avatar),
+            child: stylist.avatar.trim().isEmpty
+                ? const Icon(Icons.person_rounded, color: Colors.white70)
+                : null,
           ),
           const SizedBox(width: AppDimens.spacingMd),
           Expanded(

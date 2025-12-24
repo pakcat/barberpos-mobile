@@ -50,7 +50,10 @@ import '../modules/closing/presentation/bindings/closing_binding.dart';
 import '../modules/closing/presentation/controllers/closing_controller.dart';
 import '../modules/closing/presentation/views/closing_view.dart';
 import '../modules/staff/presentation/bindings/staff_binding.dart';
+import '../modules/staff/presentation/bindings/attendance_binding.dart';
 import '../modules/staff/presentation/controllers/staff_controller.dart';
+import '../modules/staff/presentation/views/attendance_daily_view.dart';
+import '../modules/staff/presentation/views/attendance_self_view.dart';
 import '../modules/staff/presentation/views/employee_detail_view.dart';
 import '../modules/staff/presentation/views/employee_form_view.dart';
 import '../modules/staff/presentation/views/employee_list_view.dart';
@@ -238,6 +241,18 @@ class AppPages {
       page: () => const MembershipView(),
       binding: MembershipBinding(),
       middlewares: [AuthMiddleware(allowStaff: true)],
+    ),
+    GetPage(
+      name: Routes.attendance,
+      page: () => const AttendanceSelfView(),
+      binding: AttendanceBinding(),
+      middlewares: [AuthMiddleware(allowStaff: true)],
+    ),
+    GetPage(
+      name: Routes.attendanceDaily,
+      page: () => const AttendanceDailyView(),
+      binding: AttendanceBinding(),
+      middlewares: [AuthMiddleware(requireManager: true)],
     ),
     GetPage<StaffController>(
       name: Routes.employees,

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../modules/auth/data/datasources/auth_remote_data_source.dart';
@@ -191,7 +192,11 @@ class AuthService extends GetxService {
           effectiveEmail = account.email;
           effectiveName = account.displayName ?? effectiveName;
         }
-      } catch (_) {}
+      } on PlatformException catch (e) {
+        _lastErrorMessage = e.message ?? e.code;
+      } catch (e) {
+        _lastErrorMessage = e.toString();
+      }
     }
 
     if (_backend == BackendMode.rest && token != null && token.isNotEmpty) {
@@ -613,7 +618,16 @@ class AuthService extends GetxService {
       );
       if (dto.token.isEmpty) return null;
       return dto;
-    } catch (_) {
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        _lastErrorMessage = data['message']?.toString();
+      } else {
+        _lastErrorMessage = 'Login Google gagal, coba lagi.';
+      }
+      return null;
+    } catch (e) {
+      _lastErrorMessage = _lastErrorMessage ?? e.toString();
       return null;
     }
   }
@@ -636,7 +650,16 @@ class AuthService extends GetxService {
         region: region,
       );
       return dto.token.isEmpty ? null : dto;
-    } catch (_) {
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        _lastErrorMessage = data['message']?.toString();
+      } else {
+        _lastErrorMessage = 'Login Google gagal, coba lagi.';
+      }
+      return null;
+    } catch (e) {
+      _lastErrorMessage = _lastErrorMessage ?? e.toString();
       return null;
     }
   }

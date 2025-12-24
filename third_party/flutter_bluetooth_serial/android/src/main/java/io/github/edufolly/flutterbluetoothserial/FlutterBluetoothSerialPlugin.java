@@ -392,12 +392,18 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                         case REQUEST_ENABLE_BLUETOOTH:
                             // @TODO - used underlying value of `Activity.RESULT_CANCELED` since we tend to use `androidx` in which I were not able to find the constant.
                             if (pendingResultForActivityResult != null) {
-                                pendingResultForActivityResult.success(resultCode != 0);
+                                MethodChannel.Result r = pendingResultForActivityResult;
+                                pendingResultForActivityResult = null;
+                                r.success(resultCode != 0);
                             }
                             return true;
 
                         case REQUEST_DISCOVERABLE_BLUETOOTH:
-                            pendingResultForActivityResult.success(resultCode == 0 ? -1 : resultCode);
+                            if (pendingResultForActivityResult != null) {
+                                MethodChannel.Result r = pendingResultForActivityResult;
+                                pendingResultForActivityResult = null;
+                                r.success(resultCode == 0 ? -1 : resultCode);
+                            }
                             return true;
 
                         default:
