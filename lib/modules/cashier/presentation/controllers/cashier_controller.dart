@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
+import 'package:dio/dio.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/network/network_service.dart';
+import '../../../../core/printing/thermal_printer_service.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../routes/app_routes.dart';
@@ -25,10 +27,12 @@ import '../../../stock/presentation/controllers/stock_controller.dart';
 import '../../../transactions/data/entities/transaction_entity.dart';
 import '../../../transactions/data/repositories/transaction_repository.dart';
 import '../../../transactions/presentation/controllers/transaction_controller.dart';
+import '../../../transactions/presentation/models/transaction_models.dart';
 import '../../data/datasources/cashier_remote_data_source.dart';
 import '../../data/datasources/payment_remote_data_source.dart';
 import '../../../membership/data/datasources/membership_remote_data_source.dart';
 import '../../data/entities/cart_item_entity.dart';
+import '../../data/repositories/order_outbox_repository.dart';
 import '../../data/models/order_dtos.dart';
 import '../../data/models/payment_intent_dtos.dart';
 import '../../data/repositories/cashier_repository.dart';
@@ -51,6 +55,7 @@ class CashierController extends GetxController {
     StaffRepository? staffRepository,
     ManagementRepository? customerRepository,
     AppConfig? config,
+    OrderOutboxRepository? orderOutbox,
   }) : repo = repo ?? Get.find<CashierRepository>(),
        _transactionRepo =
            transactionRepository ?? Get.find<TransactionRepository>(),
@@ -65,12 +70,32 @@ class CashierController extends GetxController {
            paymentRemoteDataSource ??
            PaymentRemoteDataSource(network ?? Get.find<NetworkService>()),
        _config = config ?? Get.find<AppConfig>(),
-       _productRepo = productRepository ?? Get.find<ProductRepository>(),
+       _orderOutbox = orderOutbox ?? (Get.isRegistered<OrderOutboxRepository>() ? Get.find<OrderOutboxRepository>() : null),
+       _productRepo =
+           productRepository ??
+           (Get.isRegistered<ProductRepository>()
+               ? Get.find<ProductRepository>()
+               : null),
        _membershipRepo =
-           membershipRepository ?? Get.find<MembershipRepository>(),
-       _reportsRepo = reportsRepository ?? Get.find<ReportsRepository>(),
-       _staffRepo = staffRepository ?? Get.find<StaffRepository>(),
-       _customerRepo = customerRepository ?? Get.find<ManagementRepository>();
+           membershipRepository ??
+           (Get.isRegistered<MembershipRepository>()
+               ? Get.find<MembershipRepository>()
+               : null),
+       _reportsRepo =
+           reportsRepository ??
+           (Get.isRegistered<ReportsRepository>()
+               ? Get.find<ReportsRepository>()
+               : null),
+       _staffRepo =
+           staffRepository ??
+           (Get.isRegistered<StaffRepository>()
+               ? Get.find<StaffRepository>()
+               : null),
+       _customerRepo =
+           customerRepository ??
+           (Get.isRegistered<ManagementRepository>()
+               ? Get.find<ManagementRepository>()
+               : null);
 
   final CashierRepository repo;
   final TransactionRepository _transactionRepo;
@@ -80,11 +105,12 @@ class CashierController extends GetxController {
   final AttendanceRepository _attendanceRepo;
   final PaymentRemoteDataSource _paymentRemote;
   final AppConfig _config;
-  final ProductRepository _productRepo;
-  final MembershipRepository _membershipRepo;
-  final ReportsRepository _reportsRepo;
-  final StaffRepository _staffRepo;
-  final ManagementRepository _customerRepo;
+  final OrderOutboxRepository? _orderOutbox;
+  final ProductRepository? _productRepo;
+  final MembershipRepository? _membershipRepo;
+  final ReportsRepository? _reportsRepo;
+  final StaffRepository? _staffRepo;
+  final ManagementRepository? _customerRepo;
 
   final RxString selectedCategory = 'Semua'.obs;
   final Rx<CashierViewMode> viewMode = CashierViewMode.grid.obs;
@@ -357,7 +383,22 @@ class CashierController extends GetxController {
       final payload = _buildPayload();
       OrderResponseDto response;
       if (_useRest) {
-        response = await _remote.submitOrder(payload);
+        try {
+          response = await _remote.submitOrder(payload);
+        } on DioException catch (_) {
+          final outbox = _orderOutbox;
+          if (paymentMethod.value != PaymentMethod.cash || outbox == null) {
+            rethrow;
+          }
+          final pendingCode = 'PENDING-${payload.clientRef}';
+          await outbox.enqueue(
+            clientRef: payload.clientRef,
+            pendingCode: pendingCode,
+            payload: payload.toJson(),
+          );
+          response = OrderResponseDto.fallback(payload: payload, generatedId: pendingCode);
+          _showSnack('Offline', 'Order disimpan dan akan disinkronkan otomatis.');
+        }
       } else {
         response = OrderResponseDto.fallback(
           payload: payload,
@@ -367,7 +408,8 @@ class CashierController extends GetxController {
       await _persistTransaction(response, payload, intent: intent);
       await _consumeMembershipQuota(payload);
       await _deductStockFromCart();
-      await _recordFinanceEntries(payload);
+      await _recordFinanceEntries(payload, transactionCode: response.code.isNotEmpty ? response.code : response.id);
+      await _autoPrintReceipt(response: response, payload: payload);
       _logs.add(
         title: 'Checkout',
         message:
@@ -387,7 +429,9 @@ class CashierController extends GetxController {
 
   Future<void> _deductStockFromCart() async {
     try {
-      final products = await _productRepo.getAll();
+      final productRepo = _productRepo;
+      if (productRepo == null) return;
+      final products = await productRepo.getAll();
       for (final item in cart) {
         final product = products.firstWhereOrNull(
           (p) => p.name.toLowerCase() == item.name.toLowerCase(),
@@ -395,7 +439,7 @@ class CashierController extends GetxController {
         if (product == null || !product.trackStock) continue;
         final newStock = (product.stock - item.qty).clamp(0, 1 << 31);
         product.stock = newStock;
-        await _productRepo.upsert(product);
+        await productRepo.upsert(product);
       }
       if (Get.isRegistered<ProductController>()) {
         await Get.find<ProductController>().refreshRemote();
@@ -406,8 +450,10 @@ class CashierController extends GetxController {
     } catch (_) {}
   }
 
-  Future<void> _recordFinanceEntries(OrderPayloadDto payload) async {
+  Future<void> _recordFinanceEntries(OrderPayloadDto payload, {required String transactionCode}) async {
     try {
+      final reportsRepo = _reportsRepo;
+      if (reportsRepo == null) return;
       final now = DateTime.now();
       for (final line in payload.items) {
         final entry = FinanceEntryEntity()
@@ -417,11 +463,12 @@ class CashierController extends GetxController {
           ..date = now
           ..type = EntryTypeEntity.revenue
           ..note = 'Penjualan via kasir'
+          ..transactionCode = transactionCode
           ..staff = selectedStylist.value.isNotEmpty
               ? selectedStylist.value
               : null
           ..service = line.name;
-        await _reportsRepo.upsert(entry);
+        await reportsRepo.upsert(entry);
       }
       if (Get.isRegistered<ReportsController>()) {
         await Get.find<ReportsController>().refresh();
@@ -432,6 +479,39 @@ class CashierController extends GetxController {
     } catch (_) {}
   }
 
+  Future<void> _autoPrintReceipt({
+    required OrderResponseDto response,
+    required OrderPayloadDto payload,
+  }) async {
+    try {
+      final service = ThermalPrinterService();
+      final profile = await service.loadProfile();
+      if (!profile.autoPrint) return;
+      if (profile.printerType.trim().toLowerCase() == 'system') return;
+      if (profile.paperSize == 'A4') return;
+
+      final code = response.code.isNotEmpty ? response.code : response.id;
+      final tx = TransactionItem(
+        id: code,
+        date: DateTime.now(),
+        time: '',
+        amount: payload.total,
+        paymentMethod: _labelPayment(paymentMethod.value),
+        status: TransactionStatus.paid,
+        items: payload.items
+            .map((e) => TransactionLine(name: e.name, category: e.category, price: e.price, qty: e.qty))
+            .toList(),
+        customer: TransactionCustomer(
+          name: selectedCustomer.value == 'Guest' ? '' : selectedCustomer.value,
+          phone: '',
+          email: '',
+          address: '',
+        ),
+      );
+      await service.printReceipt(tx, profile: profile);
+    } catch (_) {}
+  }
+
   Future<void> _consumeMembershipQuota(OrderPayloadDto payload) async {
     try {
       if (_useRest) {
@@ -439,7 +519,7 @@ class CashierController extends GetxController {
           Get.find<NetworkService>().dio,
         );
         final state = await remote.fetchState();
-        await _membershipRepo.setUsedQuota(state.usedQuota);
+        await _membershipRepo?.setUsedQuota(state.usedQuota);
         if (Get.isRegistered<MembershipController>()) {
           final c = Get.find<MembershipController>();
           c.usedQuota.value = state.usedQuota;
@@ -450,13 +530,15 @@ class CashierController extends GetxController {
         return;
       }
 
-      final used = await _membershipRepo.getUsedQuota();
+      final membershipRepo = _membershipRepo;
+      if (membershipRepo == null) return;
+      final used = await membershipRepo.getUsedQuota();
       final consumed = payload.items.fold<int>(
         0,
         (acc, item) => acc + item.qty,
       );
       final next = used + (consumed == 0 ? 1 : consumed);
-      await _membershipRepo.setUsedQuota(next);
+      await membershipRepo.setUsedQuota(next);
       if (Get.isRegistered<MembershipController>()) {
         Get.find<MembershipController>().usedQuota.value = next;
       }
@@ -467,6 +549,7 @@ class CashierController extends GetxController {
     final lines = cart
         .map(
           (c) => OrderLineDto(
+            productId: _findProductIdForCartItem(c),
             name: c.name,
             category: c.category,
             price: c.price,
@@ -477,6 +560,7 @@ class CashierController extends GetxController {
     final method = _mapPaymentMethod(paymentMethod.value);
     return OrderPayloadDto(
       items: lines,
+      clientRef: _clientRef(),
       total: total,
       paid: paid,
       change: change,
@@ -488,6 +572,25 @@ class CashierController extends GetxController {
           : selectedCustomer.value,
       shiftId: _currentShiftId(),
     );
+  }
+
+  String _clientRef() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return 'CREF-$now-${now % 100000}';
+  }
+
+  int? _findProductIdForCartItem(CartItem item) {
+    for (final s in services) {
+      if (s.name == item.name && s.category == item.category) {
+        return int.tryParse(s.id);
+      }
+    }
+    for (final s in services) {
+      if (s.name == item.name) {
+        return int.tryParse(s.id);
+      }
+    }
+    return null;
   }
 
   String _mapPaymentMethod(PaymentMethod method) {
@@ -664,7 +767,12 @@ class CashierController extends GetxController {
       }
     } catch (_) {}
     try {
-      final localProducts = await _productRepo.getAll();
+      final productRepo = _productRepo;
+      if (productRepo == null) {
+        services.clear();
+        return;
+      }
+      final localProducts = await productRepo.getAll();
       services.assignAll(localProducts.map(_mapProduct));
     } catch (_) {
       services.clear();
@@ -673,16 +781,19 @@ class CashierController extends GetxController {
 
   Future<void> _loadStylists() async {
     try {
-      final local = await _staffRepo.getAll();
-      if (local.isNotEmpty) {
-        stylists
-          ..clear()
-          ..addAll(local.map(_mapStaff));
-        selectedStylist
-          ..value = stylists.first.name
-          ..refresh();
-        selectedStylistId.value = stylists.first.id;
-        return;
+      final staffRepo = _staffRepo;
+      if (staffRepo != null) {
+        final local = await staffRepo.getAll();
+        if (local.isNotEmpty) {
+          stylists
+            ..clear()
+            ..addAll(local.map(_mapStaff));
+          selectedStylist
+            ..value = stylists.first.name
+            ..refresh();
+          selectedStylistId.value = stylists.first.id;
+          return;
+        }
       }
     } catch (_) {}
     try {
@@ -706,9 +817,12 @@ class CashierController extends GetxController {
   Future<void> _loadCustomers() async {
     final names = <String>{'Guest'};
     try {
-      final customers = await _customerRepo.getCustomers();
-      for (final c in customers) {
-        if (c.name.isNotEmpty) names.add(c.name);
+      final customerRepo = _customerRepo;
+      if (customerRepo != null) {
+        final customers = await customerRepo.getCustomers();
+        for (final c in customers) {
+          if (c.name.isNotEmpty) names.add(c.name);
+        }
       }
     } catch (_) {}
     try {
@@ -728,6 +842,7 @@ class CashierController extends GetxController {
 
   ServiceItem _mapProduct(ProductEntity p) {
     return ServiceItem(
+      id: p.id.toString(),
       name: p.name,
       category: p.category,
       price: 'Rp${p.price}',

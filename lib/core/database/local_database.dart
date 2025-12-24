@@ -15,10 +15,12 @@ import '../../modules/reports/data/entities/finance_entry_entity.dart';
 import '../../modules/membership/data/entities/membership_topup_entity.dart';
 import '../../modules/transactions/data/entities/transaction_entity.dart';
 import '../../modules/stock/data/entities/stock_entity.dart';
+import '../../modules/stock/data/entities/stock_adjustment_outbox_entity.dart';
 import 'entities/session_entity.dart';
 import '../../modules/closing/data/entities/closing_history_entity.dart';
 import '../../modules/membership/data/entities/membership_state_entity.dart';
 import '../../modules/cashier/data/entities/cart_item_entity.dart';
+import '../../modules/cashier/data/entities/order_outbox_entity.dart';
 import '../../modules/staff/data/entities/attendance_entity.dart';
 
 class LocalDatabase extends GetxService {
@@ -40,10 +42,12 @@ class LocalDatabase extends GetxService {
         MembershipTopupEntitySchema,
         TransactionEntitySchema,
         StockEntitySchema,
+        StockAdjustmentOutboxEntitySchema,
         SessionEntitySchema,
         ClosingHistoryEntitySchema,
         MembershipStateEntitySchema,
         CartItemEntitySchema,
+        OrderOutboxEntitySchema,
         AttendanceEntitySchema,
       ],
       directory: dir.path,

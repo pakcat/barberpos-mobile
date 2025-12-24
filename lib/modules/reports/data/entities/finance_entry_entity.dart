@@ -12,6 +12,7 @@ class FinanceEntryEntity {
   @enumerated
   late EntryTypeEntity type;
   String note = '';
+  String? transactionCode;
   String? staff;
   String? service;
 }

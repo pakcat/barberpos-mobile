@@ -25,6 +25,10 @@ class SettingsController extends GetxController {
   final RxString receiptFooter = ''.obs;
   final RxString defaultPaymentMethod = ''.obs;
   final RxString printerName = ''.obs;
+  final RxString printerType = 'system'.obs;
+  final RxString printerHost = ''.obs;
+  final RxInt printerPort = 9100.obs;
+  final RxString printerMac = ''.obs;
   final RxString paperSize = SettingsProfile.defaults().paperSize.obs;
 
   final RxBool autoPrint = true.obs;
@@ -40,6 +44,9 @@ class SettingsController extends GetxController {
   final TextEditingController businessPhoneController = TextEditingController();
   final TextEditingController receiptFooterController = TextEditingController();
   final TextEditingController printerNameController = TextEditingController();
+  final TextEditingController printerHostController = TextEditingController();
+  final TextEditingController printerPortController = TextEditingController();
+  final TextEditingController printerMacController = TextEditingController();
   final TextEditingController currentPasswordController =
       TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
@@ -70,6 +77,10 @@ class SettingsController extends GetxController {
     receiptFooter.value = profile.receiptFooter;
     defaultPaymentMethod.value = profile.defaultPaymentMethod;
     printerName.value = profile.printerName;
+    printerType.value = profile.printerType;
+    printerHost.value = profile.printerHost;
+    printerPort.value = profile.printerPort;
+    printerMac.value = profile.printerMac;
     const supportedPaperSizes = {'58mm', '80mm', 'A4'};
     final normalizedPaperSize = supportedPaperSizes.contains(profile.paperSize)
         ? profile.paperSize
@@ -87,6 +98,9 @@ class SettingsController extends GetxController {
     businessPhoneController.text = businessPhone.value;
     receiptFooterController.text = receiptFooter.value;
     printerNameController.text = printerName.value;
+    printerHostController.text = printerHost.value;
+    printerPortController.text = printerPort.value.toString();
+    printerMacController.text = printerMac.value;
   }
 
   void setDefaultPayment(String value) {
@@ -95,6 +109,14 @@ class SettingsController extends GetxController {
 
   void setPaperSize(String? value) {
     if (value != null) paperSize.value = value;
+  }
+
+  void setPrinterType(String? value) {
+    if (value == null) return;
+    final normalized = value.trim().toLowerCase();
+    if (normalized == 'system' || normalized == 'lan' || normalized == 'bluetooth') {
+      printerType.value = normalized;
+    }
   }
 
   Future<void> saveProfile() async {
@@ -109,6 +131,10 @@ class SettingsController extends GetxController {
       receiptFooter: receiptFooterController.text.trim(),
       defaultPaymentMethod: defaultPaymentMethod.value,
       printerName: printerNameController.text.trim(),
+      printerType: printerType.value,
+      printerHost: printerHostController.text.trim(),
+      printerPort: int.tryParse(printerPortController.text.trim()) ?? 9100,
+      printerMac: printerMacController.text.trim(),
       paperSize: normalizedPaperSize,
       autoPrint: autoPrint.value,
       notifications: notifications.value,
@@ -132,6 +158,9 @@ class SettingsController extends GetxController {
     businessPhoneController.dispose();
     receiptFooterController.dispose();
     printerNameController.dispose();
+    printerHostController.dispose();
+    printerPortController.dispose();
+    printerMacController.dispose();
     currentPasswordController.dispose();
     newPasswordController.dispose();
     confirmPasswordController.dispose();

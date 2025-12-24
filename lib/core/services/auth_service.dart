@@ -68,12 +68,16 @@ class AuthService extends GetxService {
     AppConfig? config,
     GoogleSignIn? googleSignIn,
   }) : _userRepo = userRepository,
-       _session = session,
-       _remote =
-           remote ??
-           AuthRemoteDataSource((network ?? Get.find<NetworkService>()).dio),
-       _backend = config?.backend ?? BackendMode.rest,
-       _googleSignIn = googleSignIn ?? GoogleSignIn();
+        _session = session,
+        _remote =
+            remote ??
+            AuthRemoteDataSource((network ?? Get.find<NetworkService>()).dio),
+        _backend =
+            config?.backend ??
+            (Get.isRegistered<AppConfig>()
+                ? Get.find<AppConfig>().backend
+                : BackendMode.local),
+        _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   final UserRepository _userRepo;
   final SessionService _session;

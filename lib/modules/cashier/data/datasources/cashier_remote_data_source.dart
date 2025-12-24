@@ -24,6 +24,7 @@ class CashierRemoteDataSource {
         .map((raw) => Map<String, dynamic>.from(raw))
         .map(
           (raw) => ServiceItem(
+            id: raw['id']?.toString() ?? '',
             name: raw['name']?.toString() ?? '',
             category: raw['category']?.toString() ?? 'Lainnya',
             price: raw['price']?.toString() ?? '0',

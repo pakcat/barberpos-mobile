@@ -704,6 +704,15 @@ class _EntryTile extends StatelessWidget {
                   _formatDate(item.date),
                   style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
+                if (item.transactionCode?.trim().isNotEmpty == true) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'TX: ${item.transactionCode!.trim()}',
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ],
             ),
           ),

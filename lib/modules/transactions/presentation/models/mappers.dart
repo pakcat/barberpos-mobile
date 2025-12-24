@@ -28,6 +28,8 @@ TransactionEntity toTransactionEntity(TransactionItem item) {
     ..paymentMethod = item.paymentMethod
     ..status =
         item.status == TransactionStatus.refund ? TransactionStatusEntity.refund : TransactionStatusEntity.paid
+    ..refundedAt = item.refundedAt
+    ..refundNote = item.refundNote ?? ''
     ..items = item.items.map(toLineEntity).toList()
     ..customer = toCustomerEntity(item.customer);
   return entity;

@@ -9,6 +9,7 @@ class FinanceEntry {
     required this.date,
     required this.type,
     this.note = '',
+    this.transactionCode,
     this.staff,
     this.service,
   });
@@ -20,6 +21,7 @@ class FinanceEntry {
   final DateTime date;
   final EntryType type;
   final String note;
+  final String? transactionCode;
   final String? staff;
   final String? service;
 }

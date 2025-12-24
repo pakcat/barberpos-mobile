@@ -37,6 +37,7 @@ class FinanceRemoteDataSource {
         'date': entry.date.toIso8601String().split('T').first,
         'type': entry.type.name,
         'note': entry.note,
+        if (entry.transactionCode?.isNotEmpty == true) 'transactionCode': entry.transactionCode,
         'staff': entry.staff,
         'service': entry.service,
       },
@@ -66,6 +67,12 @@ class FinanceRemoteDataSource {
   }
 
   FinanceEntryEntity _toEntity(dynamic raw) {
+    String? parseNullableString(dynamic v) {
+      final s = v?.toString().trim();
+      if (s == null || s.isEmpty) return null;
+      return s;
+    }
+
     final e = FinanceEntryEntity()
       ..title = raw['title']?.toString() ?? ''
       ..amount = int.tryParse(raw['amount']?.toString() ?? '') ?? 0
@@ -73,8 +80,9 @@ class FinanceRemoteDataSource {
       ..date = DateTime.tryParse(raw['date']?.toString() ?? '') ?? DateTime.now()
       ..type = _typeFromString(raw['type']?.toString() ?? '')
       ..note = raw['note']?.toString() ?? ''
-      ..staff = raw['staff']?.toString() ?? ''
-      ..service = raw['service']?.toString() ?? '';
+      ..transactionCode = parseNullableString(raw['transactionCode'])
+      ..staff = parseNullableString(raw['staff'])
+      ..service = parseNullableString(raw['service']);
     e.id = int.tryParse(raw['id']?.toString() ?? '') ?? 0;
     return e;
   }

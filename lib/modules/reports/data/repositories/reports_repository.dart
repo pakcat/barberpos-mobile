@@ -82,5 +82,17 @@ class ReportsRepository {
     });
   }
 
+  Future<void> updateTransactionCode({required String oldCode, required String newCode}) async {
+    if (oldCode == newCode) return;
+    await _isar.writeTxn(() async {
+      final rows = await _isar.financeEntryEntitys.filter().transactionCodeEqualTo(oldCode).findAll();
+      if (rows.isEmpty) return;
+      for (final e in rows) {
+        e.transactionCode = newCode;
+      }
+      await _isar.financeEntryEntitys.putAll(rows);
+    });
+  }
+
   Future<void> delete(Id id) async => _isar.writeTxn(() => _isar.financeEntryEntitys.delete(id));
 }

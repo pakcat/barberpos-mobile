@@ -28,20 +28,46 @@ void main() {
 
   setUpAll(() async {
     if (Platform.isWindows) {
-      final isarLibPath = [
-        Platform.environment['LOCALAPPDATA'],
-        'Pub',
-        'Cache',
-        'hosted',
-        'pub.dev',
-        'isar_flutter_libs-${Isar.version}',
-        'windows',
-        'isar.dll'
-      ].whereType<String>().join(Platform.pathSeparator);
+      final localAppData = Platform.environment['LOCALAPPDATA'];
+      if (localAppData == null || localAppData.isEmpty) return;
+
+      final hostedRoot = Directory(
+        [
+          localAppData,
+          'Pub',
+          'Cache',
+          'hosted',
+          'pub.dev',
+        ].join(Platform.pathSeparator),
+      );
+      if (!hostedRoot.existsSync()) return;
+
+      final candidates =
+          hostedRoot
+              .listSync()
+              .whereType<Directory>()
+              .where(
+                (d) => d.path.contains('isar_flutter_libs-'),
+              )
+              .toList()
+            ..sort((a, b) => b.path.compareTo(a.path));
+
+      String? dllPath;
+      for (final dir in candidates) {
+        final candidate = File(
+          [dir.path, 'windows', 'isar.dll'].join(Platform.pathSeparator),
+        );
+        if (candidate.existsSync()) {
+          dllPath = candidate.path;
+          break;
+        }
+      }
+      if (dllPath == null) return;
+
       await Isar.initializeIsarCore(
         libraries: {
-          Abi.windowsX64: isarLibPath,
-          Abi.windowsArm64: isarLibPath,
+          Abi.windowsX64: dllPath,
+          Abi.windowsArm64: dllPath,
         },
       );
     }

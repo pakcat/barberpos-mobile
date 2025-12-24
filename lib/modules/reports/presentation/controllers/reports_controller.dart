@@ -127,10 +127,10 @@ class ReportsController extends GetxController {
 
   Future<String> exportCsv() async {
     final buffer = StringBuffer();
-    buffer.writeln('id,title,amount,category,date,type,staff,service');
+    buffer.writeln('id,title,amount,category,date,type,transaction_code,staff,service');
     for (final e in filteredEntries) {
       buffer.writeln(
-        '${e.id},${e.title},${e.amount},${e.category},${e.date.toIso8601String()},${e.type.name},${e.staff ?? ''},${e.service ?? ''}',
+        '${e.id},${e.title},${e.amount},${e.category},${e.date.toIso8601String()},${e.type.name},${e.transactionCode ?? ''},${e.staff ?? ''},${e.service ?? ''}',
       );
     }
     return buffer.toString();
@@ -179,6 +179,7 @@ class ReportsController extends GetxController {
         ? EntryType.expense
         : EntryType.revenue,
     note: e.note,
+    transactionCode: e.transactionCode,
     staff: e.staff,
     service: e.service,
   );
@@ -193,6 +194,7 @@ class ReportsController extends GetxController {
           ? EntryTypeEntity.expense
           : EntryTypeEntity.revenue
       ..note = e.note
+      ..transactionCode = e.transactionCode
       ..staff = e.staff
       ..service = e.service;
     entity.id = int.tryParse(e.id) ?? e.id.hashCode;

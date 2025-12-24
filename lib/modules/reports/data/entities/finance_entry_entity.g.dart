@@ -29,8 +29,13 @@ const FinanceEntryEntitySchema = CollectionSchema(
     r'service': PropertySchema(id: 4, name: r'service', type: IsarType.string),
     r'staff': PropertySchema(id: 5, name: r'staff', type: IsarType.string),
     r'title': PropertySchema(id: 6, name: r'title', type: IsarType.string),
-    r'type': PropertySchema(
+    r'transactionCode': PropertySchema(
       id: 7,
+      name: r'transactionCode',
+      type: IsarType.string,
+    ),
+    r'type': PropertySchema(
+      id: 8,
       name: r'type',
       type: IsarType.byte,
       enumMap: _FinanceEntryEntitytypeEnumValueMap,
@@ -73,6 +78,12 @@ int _financeEntryEntityEstimateSize(
     }
   }
   bytesCount += 3 + object.title.length * 3;
+  {
+    final value = object.transactionCode;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -89,7 +100,8 @@ void _financeEntryEntitySerialize(
   writer.writeString(offsets[4], object.service);
   writer.writeString(offsets[5], object.staff);
   writer.writeString(offsets[6], object.title);
-  writer.writeByte(offsets[7], object.type.index);
+  writer.writeString(offsets[7], object.transactionCode);
+  writer.writeByte(offsets[8], object.type.index);
 }
 
 FinanceEntryEntity _financeEntryEntityDeserialize(
@@ -107,8 +119,9 @@ FinanceEntryEntity _financeEntryEntityDeserialize(
   object.service = reader.readStringOrNull(offsets[4]);
   object.staff = reader.readStringOrNull(offsets[5]);
   object.title = reader.readString(offsets[6]);
+  object.transactionCode = reader.readStringOrNull(offsets[7]);
   object.type =
-      _FinanceEntryEntitytypeValueEnumMap[reader.readByteOrNull(offsets[7])] ??
+      _FinanceEntryEntitytypeValueEnumMap[reader.readByteOrNull(offsets[8])] ??
       EntryTypeEntity.revenue;
   return object;
 }
@@ -135,6 +148,8 @@ P _financeEntryEntityDeserializeProp<P>(
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readStringOrNull(offset)) as P;
+    case 8:
       return (_FinanceEntryEntitytypeValueEnumMap[reader.readByteOrNull(
                 offset,
               )] ??
@@ -1157,6 +1172,165 @@ extension FinanceEntryEntityQueryFilter
   }
 
   QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'transactionCode'),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'transactionCode'),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'transactionCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'transactionCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'transactionCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'transactionCode',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'transactionCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'transactionCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'transactionCode',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'transactionCode',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'transactionCode', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
+  transactionCodeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'transactionCode', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterFilterCondition>
   typeEqualTo(EntryTypeEntity value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1319,6 +1493,20 @@ extension FinanceEntryEntityQuerySortBy
   }
 
   QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterSortBy>
+  sortByTransactionCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transactionCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterSortBy>
+  sortByTransactionCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transactionCode', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterSortBy>
   sortByType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'type', Sort.asc);
@@ -1448,6 +1636,20 @@ extension FinanceEntryEntityQuerySortThenBy
   }
 
   QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterSortBy>
+  thenByTransactionCode() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transactionCode', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterSortBy>
+  thenByTransactionCodeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'transactionCode', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QAfterSortBy>
   thenByType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'type', Sort.asc);
@@ -1514,6 +1716,16 @@ extension FinanceEntryEntityQueryWhereDistinct
   }
 
   QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QDistinct>
+  distinctByTransactionCode({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'transactionCode',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, FinanceEntryEntity, QDistinct>
   distinctByType() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'type');
@@ -1570,6 +1782,13 @@ extension FinanceEntryEntityQueryProperty
   QueryBuilder<FinanceEntryEntity, String, QQueryOperations> titleProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'title');
+    });
+  }
+
+  QueryBuilder<FinanceEntryEntity, String?, QQueryOperations>
+  transactionCodeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'transactionCode');
     });
   }
 

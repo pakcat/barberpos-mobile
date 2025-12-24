@@ -13,6 +13,10 @@ class SettingsEntity {
   late String receiptFooter;
   late String defaultPaymentMethod;
   late String printerName;
+  late String printerType;
+  late String printerHost;
+  late int printerPort;
+  late String printerMac;
   late String paperSize;
   late bool autoPrint;
   late bool notifications;
@@ -31,6 +35,10 @@ extension SettingsEntityMapper on SettingsEntity {
       receiptFooter: receiptFooter,
       defaultPaymentMethod: defaultPaymentMethod,
       printerName: printerName,
+      printerType: printerType,
+      printerHost: printerHost,
+      printerPort: printerPort,
+      printerMac: printerMac,
       paperSize: paperSize,
       autoPrint: autoPrint,
       notifications: notifications,
@@ -52,6 +60,10 @@ extension SettingsProfileMapper on SettingsProfile {
       ..receiptFooter = receiptFooter
       ..defaultPaymentMethod = defaultPaymentMethod
       ..printerName = printerName
+      ..printerType = printerType
+      ..printerHost = printerHost
+      ..printerPort = printerPort
+      ..printerMac = printerMac
       ..paperSize = paperSize
       ..autoPrint = autoPrint
       ..notifications = notifications

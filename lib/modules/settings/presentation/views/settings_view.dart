@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:get/get.dart';
 
+import '../../../../core/printing/thermal_printer_service.dart';
 import '../../../../core/values/app_colors.dart';
 import '../../../../core/values/app_dimens.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -172,6 +174,103 @@ class SettingsView extends GetView<SettingsController> {
                         DropdownMenuItem(value: 'A4', child: Text('A4 (Standar)')),
                       ],
                       onChanged: controller.setPaperSize,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.spacingSm),
+                  Obx(
+                    () => DropdownButtonFormField<String>(
+                      initialValue: const {'system', 'lan', 'bluetooth'}.contains(controller.printerType.value)
+                          ? controller.printerType.value
+                          : 'system',
+                      dropdownColor: AppColors.grey800,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Tipe Printer',
+                        labelStyle: const TextStyle(color: Colors.white54),
+                        prefixIcon: const Icon(Icons.print_rounded, color: Colors.white54),
+                        filled: true,
+                        fillColor: AppColors.grey800,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+                          borderSide: const BorderSide(color: AppColors.grey700),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+                          borderSide: const BorderSide(color: AppColors.grey700),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+                          borderSide: const BorderSide(color: AppColors.orange500),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'system', child: Text('System Print (Dialog OS)')),
+                        DropdownMenuItem(value: 'lan', child: Text('Thermal LAN (TCP)')),
+                        DropdownMenuItem(value: 'bluetooth', child: Text('Thermal Bluetooth (SPP)')),
+                      ],
+                      onChanged: controller.setPrinterType,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.spacingSm),
+                  Obx(() {
+                    if (controller.printerType.value == 'lan') {
+                      return Column(
+                        children: [
+                          AppInputField(
+                            controller: controller.printerHostController,
+                            hint: 'IP Printer (contoh: 192.168.1.50)',
+                            prefix: const Icon(Icons.wifi_rounded),
+                            onChanged: (v) => controller.printerHost.value = v,
+                          ),
+                          const SizedBox(height: AppDimens.spacingSm),
+                          AppInputField(
+                            controller: controller.printerPortController,
+                            hint: 'Port (default 9100)',
+                            keyboardType: TextInputType.number,
+                            prefix: const Icon(Icons.settings_ethernet_rounded),
+                            onChanged: (v) => controller.printerPort.value = int.tryParse(v.trim()) ?? 9100,
+                          ),
+                        ],
+                      );
+                    }
+                    if (controller.printerType.value == 'bluetooth') {
+                      return Column(
+                        children: [
+                          AppInputField(
+                            controller: controller.printerMacController,
+                            hint: 'MAC Printer (contoh: 00:11:22:33:44:55)',
+                            prefix: const Icon(Icons.bluetooth_rounded),
+                            onChanged: (v) => controller.printerMac.value = v,
+                          ),
+                          const SizedBox(height: AppDimens.spacingSm),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: () => _pickBluetoothDevice(context, controller),
+                              icon: const Icon(Icons.search_rounded, color: Colors.white70),
+                              label: const Text('Pilih dari perangkat paired', style: TextStyle(color: Colors.white70)),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
+                  const SizedBox(height: AppDimens.spacingSm),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        try {
+                          await ThermalPrinterService().testPrint();
+                          Get.snackbar('Printer', 'Test print dikirim');
+                        } catch (e) {
+                          Get.snackbar('Gagal print', e.toString());
+                        }
+                      },
+                      icon: const Icon(Icons.receipt_long_rounded, color: Colors.white),
+                      label: const Text('Test print thermal', style: TextStyle(color: Colors.white)),
+                      style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.grey700)),
                     ),
                   ),
                   const SizedBox(height: AppDimens.spacingSm),
@@ -352,6 +451,52 @@ class SettingsView extends GetView<SettingsController> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickBluetoothDevice(BuildContext context, SettingsController controller) async {
+    try {
+      final devices = await FlutterBluetoothSerial.instance.getBondedDevices();
+      if (devices.isEmpty) {
+        Get.snackbar('Bluetooth', 'Tidak ada perangkat paired');
+        return;
+      }
+
+      await Get.bottomSheet<void>(
+        Container(
+          padding: const EdgeInsets.all(AppDimens.spacingLg),
+          decoration: const BoxDecoration(
+            color: AppColors.grey900,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimens.cornerRadius)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Pilih printer Bluetooth', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                const SizedBox(height: AppDimens.spacingSm),
+                ...devices.map((d) {
+                  final name = (d.name ?? 'Bluetooth Device').trim();
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.bluetooth_rounded, color: Colors.white70),
+                    title: Text(name, style: const TextStyle(color: Colors.white)),
+                    subtitle: Text(d.address, style: const TextStyle(color: Colors.white54)),
+                    onTap: () {
+                      controller.printerMacController.text = d.address;
+                      controller.printerMac.value = d.address;
+                      Get.back();
+                    },
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      Get.snackbar('Bluetooth', e.toString());
+    }
   }
 }
 

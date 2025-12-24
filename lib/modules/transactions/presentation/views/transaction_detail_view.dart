@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
-import '../../../../core/config/app_config.dart';
+import '../../../../core/printing/receipt_pdf.dart';
+import '../../../../core/printing/thermal_printer_service.dart';
 import '../../../../core/values/app_colors.dart';
 import '../../../../core/values/app_dimens.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -20,8 +23,15 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
   final controller = Get.find<TransactionController>();
   bool showCustomer = false;
   final TextEditingController amountController = TextEditingController();
+  final TextEditingController refundNoteController = TextEditingController();
+  bool refundDelete = true;
 
-  bool get _isRest => Get.find<AppConfig>().backend == BackendMode.rest;
+  @override
+  void dispose() {
+    amountController.dispose();
+    refundNoteController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +56,7 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
       actions: [
         IconButton(
           icon: const Icon(Icons.share_rounded),
-          onPressed: () => Get.snackbar('Bagikan', 'Struk siap dibagikan.'),
+          onPressed: () => _showReceiptActions(tx),
         ),
       ],
       body: Column(
@@ -118,17 +128,17 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
             children: [
               Expanded(
                 child: TextButton(
-                  onPressed: _isRest ? () => _notSupported() : () => _confirmRefund(tx.id),
-                  child: const Text(
-                    'Refund & Hapus',
-                    style: TextStyle(color: AppColors.red500),
+                  onPressed: () => tx.id.startsWith('PENDING-') ? controller.remove(tx.id) : _confirmRefund(tx.id),
+                  child: Text(
+                    tx.id.startsWith('PENDING-') ? 'Batalkan (hapus lokal)' : 'Refund & Hapus',
+                    style: TextStyle(color: tx.id.startsWith('PENDING-') ? AppColors.orange500 : AppColors.red500),
                   ),
                 ),
               ),
               const SizedBox(width: AppDimens.spacingSm),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: _isRest ? () => _notSupported() : () => _markPaid(tx),
+                  onPressed: () => _markPaid(tx),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.orange500),
                     foregroundColor: AppColors.orange500,
@@ -183,22 +193,45 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
   }
 
   void _confirmRefund(String id) {
+    refundNoteController.clear();
+    refundDelete = true;
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColors.grey800,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimens.cornerRadius)),
         title: const Text('Konfirmasi refund', style: TextStyle(color: Colors.white)),
-        content: Text(
-          'Refund transaksi $id?',
-          style: const TextStyle(color: Colors.white70),
+        content: StatefulBuilder(
+          builder: (context, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Refund transaksi $id?',
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: AppDimens.spacingSm),
+              TextField(
+                controller: refundNoteController,
+                decoration: const InputDecoration(
+                  labelText: 'Catatan (opsional)',
+                ),
+              ),
+              const SizedBox(height: AppDimens.spacingSm),
+              SwitchListTile(
+                value: refundDelete,
+                onChanged: (v) => setState(() => refundDelete = v),
+                title: const Text('Hapus dari riwayat', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
           TextButton(
             onPressed: () {
               Get.back();
-              controller.remove(id);
-              Get.snackbar('Refund', 'Transaksi dihapus & ditandai refund');
+              controller.refund(id: id, note: refundNoteController.text.trim(), delete: refundDelete);
+              Get.snackbar('Refund', refundDelete ? 'Transaksi dihapus & ditandai refund' : 'Transaksi ditandai refund');
               },
             child: const Text('Refund'),
           ),
@@ -208,23 +241,88 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
   }
 
   void _markPaid(TransactionItem tx) {
-    controller.upsertTransaction(
-      TransactionItem(
-        id: tx.id,
-        date: tx.date,
-        time: tx.time,
-        amount: tx.amount,
-        paymentMethod: tx.paymentMethod,
-        status: TransactionStatus.paid,
-        items: tx.items,
-        customer: tx.customer,
-      ),
-    );
+    controller.markPaid(tx.id);
     Get.snackbar('Status', 'Transaksi ditandai lunas');
   }
 
-  void _notSupported() {
-    Get.snackbar('Info', 'Aksi ini belum tersedia untuk mode REST.');
+  Future<void> _shareReceipt(TransactionItem tx) async {
+    final buffer = StringBuffer();
+    buffer.writeln('BARBERPOS');
+    buffer.writeln('--------------------------');
+    buffer.writeln('Kode: ${tx.id}');
+    buffer.writeln('Tanggal: ${_formatFullDate(tx.date)} ${tx.time}');
+    buffer.writeln('Metode: ${tx.paymentMethod}');
+    buffer.writeln('Status: ${tx.status.name}');
+    buffer.writeln('--------------------------');
+    for (final line in tx.items) {
+      buffer.writeln('${line.name} x${line.qty} @ Rp${line.price}');
+      buffer.writeln('  Subtotal: Rp${line.price * line.qty}');
+    }
+    buffer.writeln('--------------------------');
+    buffer.writeln('TOTAL: Rp${tx.amount}');
+    if (tx.customer.name.trim().isNotEmpty) {
+      buffer.writeln('Pelanggan: ${tx.customer.name}');
+    }
+    await Share.share(buffer.toString());
+  }
+
+  Future<void> _showReceiptActions(TransactionItem tx) async {
+    await Get.bottomSheet<void>(
+      Container(
+        padding: const EdgeInsets.all(AppDimens.spacingLg),
+        decoration: const BoxDecoration(
+          color: AppColors.grey900,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimens.cornerRadius)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.text_snippet_rounded, color: Colors.white),
+                title: const Text('Bagikan teks', style: TextStyle(color: Colors.white)),
+                onTap: () async {
+                  Get.back();
+                  await _shareReceipt(tx);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
+                title: const Text('Bagikan PDF', style: TextStyle(color: Colors.white)),
+                onTap: () async {
+                  Get.back();
+                  final bytes = await ReceiptPdf.build(tx);
+                  await Printing.sharePdf(bytes: bytes, filename: 'receipt_${tx.id}.pdf');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.print_rounded, color: Colors.white),
+                title: const Text('Print', style: TextStyle(color: Colors.white)),
+                onTap: () async {
+                  Get.back();
+                  final bytes = await ReceiptPdf.build(tx);
+                  await Printing.layoutPdf(onLayout: (_) async => bytes);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.receipt_long_rounded, color: Colors.white),
+                title: const Text('Print Thermal (ESC/POS)', style: TextStyle(color: Colors.white)),
+                onTap: () async {
+                  Get.back();
+                  try {
+                    await ThermalPrinterService().printReceipt(tx);
+                    Get.snackbar('Printer', 'Struk dikirim ke printer');
+                  } catch (e) {
+                    Get.snackbar('Gagal print', e.toString());
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -459,7 +557,7 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPaid = status == TransactionStatus.paid;
-    final color = isPaid ? AppColors.green500 : AppColors.orange500;
+    final color = isPaid ? AppColors.green500 : AppColors.red500;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimens.spacingSm,

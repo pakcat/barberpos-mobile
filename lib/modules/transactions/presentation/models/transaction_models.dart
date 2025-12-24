@@ -10,6 +10,8 @@ class TransactionItem {
     required this.status,
     required this.items,
     required this.customer,
+    this.refundedAt,
+    this.refundNote,
   });
 
   final String id;
@@ -20,6 +22,8 @@ class TransactionItem {
   final TransactionStatus status;
   final List<TransactionLine> items;
   final TransactionCustomer customer;
+  final DateTime? refundedAt;
+  final String? refundNote;
 }
 
 class TransactionLine {

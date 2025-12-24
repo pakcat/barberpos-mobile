@@ -4,6 +4,9 @@ import 'package:get/get.dart';
 import '../../../../core/config/app_config.dart';
 import '../../data/entities/transaction_entity.dart';
 import '../../data/repositories/transaction_repository.dart';
+import '../../../cashier/data/repositories/order_outbox_repository.dart';
+import '../../../reports/data/entities/finance_entry_entity.dart';
+import '../../../reports/data/repositories/reports_repository.dart';
 import '../models/mappers.dart';
 import '../models/transaction_models.dart';
 
@@ -51,12 +54,83 @@ class TransactionController extends GetxController {
   }
 
   Future<void> remove(String id) async {
-    if (_isRest) {
-      Get.snackbar('Info', 'Refund/hapus transaksi belum tersedia untuk mode REST.');
+    if (id.startsWith('PENDING-') && Get.isRegistered<OrderOutboxRepository>()) {
+      await Get.find<OrderOutboxRepository>().cancelByPendingCode(id);
+      transactions.removeWhere((t) => t.id == id);
+      await repo.deleteByCode(id);
+      return;
+    }
+    final ok = await repo.refundByCode(code: id, delete: true);
+    if (!ok) {
+      Get.snackbar('Gagal', 'Refund transaksi gagal.');
       return;
     }
     transactions.removeWhere((t) => t.id == id);
-    await repo.deleteByCode(id);
+  }
+
+  Future<void> refund({
+    required String id,
+    String? note,
+    bool delete = true,
+  }) async {
+    if (delete && id.startsWith('PENDING-') && Get.isRegistered<OrderOutboxRepository>()) {
+      await Get.find<OrderOutboxRepository>().cancelByPendingCode(id);
+      transactions.removeWhere((t) => t.id == id);
+      await repo.deleteByCode(id);
+      return;
+    }
+    final localTx = transactions.firstWhereOrNull((t) => t.id == id);
+    final ok = await repo.refundByCode(code: id, note: note, delete: delete);
+    if (!ok) {
+      Get.snackbar('Gagal', 'Refund transaksi gagal.');
+      return;
+    }
+    await _recordRefundFinanceEntry(id: id, tx: localTx, note: note);
+    if (delete) {
+      transactions.removeWhere((t) => t.id == id);
+      return;
+    }
+    final idx = transactions.indexWhere((t) => t.id == id);
+    if (idx != -1) {
+      final tx = transactions[idx];
+      final now = DateTime.now();
+      transactions[idx] = TransactionItem(
+        id: tx.id,
+        date: tx.date,
+        time: tx.time,
+        amount: tx.amount,
+        paymentMethod: tx.paymentMethod,
+        status: TransactionStatus.refund,
+        refundedAt: now,
+        refundNote: note?.trim().isNotEmpty ?? false ? note!.trim() : null,
+        items: tx.items,
+        customer: tx.customer,
+      );
+      transactions.refresh();
+    }
+  }
+
+  Future<void> _recordRefundFinanceEntry({
+    required String id,
+    required TransactionItem? tx,
+    String? note,
+  }) async {
+    try {
+      final reportsRepo =
+          Get.isRegistered<ReportsRepository>() ? Get.find<ReportsRepository>() : null;
+      if (reportsRepo == null) return;
+      final amount = tx?.amount;
+      if (amount == null) return;
+      final entry = FinanceEntryEntity()
+        ..title = 'Refund $id'
+        ..amount = amount
+        ..category = 'Refund'
+        ..date = DateTime.now()
+        ..type = EntryTypeEntity.expense
+        ..note = note?.trim() ?? ''
+        ..transactionCode = id;
+      await reportsRepo.upsert(entry);
+    } catch (_) {}
   }
 
   Future<void> _load({DateTimeRange? range}) async {
@@ -88,6 +162,8 @@ class TransactionController extends GetxController {
     status: e.status == TransactionStatusEntity.refund
         ? TransactionStatus.refund
         : TransactionStatus.paid,
+    refundedAt: e.refundedAt,
+    refundNote: e.refundNote.isEmpty ? null : e.refundNote,
     items: e.items
         .map((i) => TransactionLine(name: i.name, category: i.category, price: i.price, qty: i.qty))
         .toList(),
@@ -110,6 +186,55 @@ class TransactionController extends GetxController {
     }
     final entity = toTransactionEntity(item);
     await repo.upsert(entity);
+  }
+
+  Future<void> markPaid(String id) async {
+    if (id.startsWith('PENDING-')) {
+      Get.snackbar('Info', 'Transaksi masih pending sync.');
+      return;
+    }
+    final ok = await repo.markPaidByCode(code: id);
+    if (!ok) {
+      Get.snackbar('Gagal', 'Gagal menandai lunas.');
+      return;
+    }
+    await _removeRefundFinanceEntries(id);
+    final idx = transactions.indexWhere((t) => t.id == id);
+    if (idx != -1) {
+      final tx = transactions[idx];
+      transactions[idx] = TransactionItem(
+        id: tx.id,
+        date: tx.date,
+        time: tx.time,
+        amount: tx.amount,
+        paymentMethod: tx.paymentMethod,
+        status: TransactionStatus.paid,
+        items: tx.items,
+        customer: tx.customer,
+      );
+      transactions.refresh();
+    }
+  }
+
+  Future<void> _removeRefundFinanceEntries(String transactionCode) async {
+    try {
+      final reportsRepo =
+          Get.isRegistered<ReportsRepository>() ? Get.find<ReportsRepository>() : null;
+      if (reportsRepo == null) return;
+      final entries = await reportsRepo.getAll();
+      final idsToDelete = entries
+          .where(
+            (e) =>
+                e.transactionCode == transactionCode &&
+                e.category.trim().toLowerCase() == 'refund' &&
+                e.type == EntryTypeEntity.expense,
+          )
+          .map((e) => e.id)
+          .toList();
+      for (final id in idsToDelete) {
+        await reportsRepo.delete(id);
+      }
+    } catch (_) {}
   }
 
   Future<void> refreshRemote() async => _load(range: filterRange.value);

@@ -6,6 +6,10 @@ class SettingsProfile {
     required this.receiptFooter,
     required this.defaultPaymentMethod,
     required this.printerName,
+    required this.printerType,
+    required this.printerHost,
+    required this.printerPort,
+    required this.printerMac,
     required this.paperSize,
     required this.autoPrint,
     required this.notifications,
@@ -21,6 +25,10 @@ class SettingsProfile {
   final String receiptFooter;
   final String defaultPaymentMethod;
   final String printerName;
+  final String printerType;
+  final String printerHost;
+  final int printerPort;
+  final String printerMac;
   final String paperSize;
   final bool autoPrint;
   final bool notifications;
@@ -36,6 +44,10 @@ class SettingsProfile {
     String? receiptFooter,
     String? defaultPaymentMethod,
     String? printerName,
+    String? printerType,
+    String? printerHost,
+    int? printerPort,
+    String? printerMac,
     String? paperSize,
     bool? autoPrint,
     bool? notifications,
@@ -51,6 +63,10 @@ class SettingsProfile {
       receiptFooter: receiptFooter ?? this.receiptFooter,
       defaultPaymentMethod: defaultPaymentMethod ?? this.defaultPaymentMethod,
       printerName: printerName ?? this.printerName,
+      printerType: printerType ?? this.printerType,
+      printerHost: printerHost ?? this.printerHost,
+      printerPort: printerPort ?? this.printerPort,
+      printerMac: printerMac ?? this.printerMac,
       paperSize: paperSize ?? this.paperSize,
       autoPrint: autoPrint ?? this.autoPrint,
       notifications: notifications ?? this.notifications,
@@ -69,6 +85,10 @@ class SettingsProfile {
       receiptFooter: 'Terima kasih sudah berkunjung!',
       defaultPaymentMethod: 'Tunai',
       printerName: 'Printer Kasir #1',
+      printerType: 'system',
+      printerHost: '',
+      printerPort: 9100,
+      printerMac: '',
       paperSize: '58mm',
       autoPrint: true,
       notifications: true,

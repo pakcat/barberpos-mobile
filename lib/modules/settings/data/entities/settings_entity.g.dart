@@ -62,23 +62,43 @@ const SettingsEntitySchema = CollectionSchema(
       name: r'paperSize',
       type: IsarType.string,
     ),
-    r'printerName': PropertySchema(
+    r'printerHost': PropertySchema(
       id: 9,
+      name: r'printerHost',
+      type: IsarType.string,
+    ),
+    r'printerMac': PropertySchema(
+      id: 10,
+      name: r'printerMac',
+      type: IsarType.string,
+    ),
+    r'printerName': PropertySchema(
+      id: 11,
       name: r'printerName',
       type: IsarType.string,
     ),
+    r'printerPort': PropertySchema(
+      id: 12,
+      name: r'printerPort',
+      type: IsarType.long,
+    ),
+    r'printerType': PropertySchema(
+      id: 13,
+      name: r'printerType',
+      type: IsarType.string,
+    ),
     r'receiptFooter': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'receiptFooter',
       type: IsarType.string,
     ),
     r'roundingPrice': PropertySchema(
-      id: 11,
+      id: 15,
       name: r'roundingPrice',
       type: IsarType.bool,
     ),
     r'trackStock': PropertySchema(
-      id: 12,
+      id: 16,
       name: r'trackStock',
       type: IsarType.bool,
     ),
@@ -110,7 +130,10 @@ int _settingsEntityEstimateSize(
   bytesCount += 3 + object.businessPhone.length * 3;
   bytesCount += 3 + object.defaultPaymentMethod.length * 3;
   bytesCount += 3 + object.paperSize.length * 3;
+  bytesCount += 3 + object.printerHost.length * 3;
+  bytesCount += 3 + object.printerMac.length * 3;
   bytesCount += 3 + object.printerName.length * 3;
+  bytesCount += 3 + object.printerType.length * 3;
   bytesCount += 3 + object.receiptFooter.length * 3;
   return bytesCount;
 }
@@ -130,10 +153,14 @@ void _settingsEntitySerialize(
   writer.writeString(offsets[6], object.defaultPaymentMethod);
   writer.writeBool(offsets[7], object.notifications);
   writer.writeString(offsets[8], object.paperSize);
-  writer.writeString(offsets[9], object.printerName);
-  writer.writeString(offsets[10], object.receiptFooter);
-  writer.writeBool(offsets[11], object.roundingPrice);
-  writer.writeBool(offsets[12], object.trackStock);
+  writer.writeString(offsets[9], object.printerHost);
+  writer.writeString(offsets[10], object.printerMac);
+  writer.writeString(offsets[11], object.printerName);
+  writer.writeLong(offsets[12], object.printerPort);
+  writer.writeString(offsets[13], object.printerType);
+  writer.writeString(offsets[14], object.receiptFooter);
+  writer.writeBool(offsets[15], object.roundingPrice);
+  writer.writeBool(offsets[16], object.trackStock);
 }
 
 SettingsEntity _settingsEntityDeserialize(
@@ -153,10 +180,14 @@ SettingsEntity _settingsEntityDeserialize(
   object.id = id;
   object.notifications = reader.readBool(offsets[7]);
   object.paperSize = reader.readString(offsets[8]);
-  object.printerName = reader.readString(offsets[9]);
-  object.receiptFooter = reader.readString(offsets[10]);
-  object.roundingPrice = reader.readBool(offsets[11]);
-  object.trackStock = reader.readBool(offsets[12]);
+  object.printerHost = reader.readString(offsets[9]);
+  object.printerMac = reader.readString(offsets[10]);
+  object.printerName = reader.readString(offsets[11]);
+  object.printerPort = reader.readLong(offsets[12]);
+  object.printerType = reader.readString(offsets[13]);
+  object.receiptFooter = reader.readString(offsets[14]);
+  object.roundingPrice = reader.readBool(offsets[15]);
+  object.trackStock = reader.readBool(offsets[16]);
   return object;
 }
 
@@ -190,8 +221,16 @@ P _settingsEntityDeserializeProp<P>(
     case 10:
       return (reader.readString(offset)) as P;
     case 11:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 12:
+      return (reader.readLong(offset)) as P;
+    case 13:
+      return (reader.readString(offset)) as P;
+    case 14:
+      return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readBool(offset)) as P;
+    case 16:
       return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1100,6 +1139,288 @@ extension SettingsEntityQueryFilter
   }
 
   QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'printerHost',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'printerHost',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'printerHost',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'printerHost',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'printerHost',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'printerHost',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'printerHost',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'printerHost',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'printerHost', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerHostIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'printerHost', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'printerMac',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'printerMac',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'printerMac',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'printerMac',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'printerMac',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'printerMac',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'printerMac',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'printerMac',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'printerMac', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerMacIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'printerMac', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
   printerNameEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1236,6 +1557,202 @@ extension SettingsEntityQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'printerName', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerPortEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'printerPort', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerPortGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'printerPort',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerPortLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'printerPort',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerPortBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'printerPort',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'printerType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'printerType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'printerType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'printerType',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'printerType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'printerType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'printerType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'printerType',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'printerType', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterFilterCondition>
+  printerTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'printerType', value: ''),
       );
     });
   }
@@ -1533,6 +2050,34 @@ extension SettingsEntityQuerySortBy
   }
 
   QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  sortByPrinterHost() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerHost', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  sortByPrinterHostDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerHost', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  sortByPrinterMac() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerMac', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  sortByPrinterMacDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerMac', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
   sortByPrinterName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'printerName', Sort.asc);
@@ -1543,6 +2088,34 @@ extension SettingsEntityQuerySortBy
   sortByPrinterNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'printerName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  sortByPrinterPort() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerPort', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  sortByPrinterPortDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerPort', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  sortByPrinterType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  sortByPrinterTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerType', Sort.desc);
     });
   }
 
@@ -1728,6 +2301,34 @@ extension SettingsEntityQuerySortThenBy
   }
 
   QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  thenByPrinterHost() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerHost', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  thenByPrinterHostDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerHost', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  thenByPrinterMac() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerMac', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  thenByPrinterMacDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerMac', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
   thenByPrinterName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'printerName', Sort.asc);
@@ -1738,6 +2339,34 @@ extension SettingsEntityQuerySortThenBy
   thenByPrinterNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'printerName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  thenByPrinterPort() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerPort', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  thenByPrinterPortDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerPort', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  thenByPrinterType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QAfterSortBy>
+  thenByPrinterTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'printerType', Sort.desc);
     });
   }
 
@@ -1860,9 +2489,38 @@ extension SettingsEntityQueryWhereDistinct
   }
 
   QueryBuilder<SettingsEntity, SettingsEntity, QDistinct>
+  distinctByPrinterHost({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'printerHost', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QDistinct> distinctByPrinterMac({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'printerMac', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QDistinct>
   distinctByPrinterName({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'printerName', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QDistinct>
+  distinctByPrinterPort() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'printerPort');
+    });
+  }
+
+  QueryBuilder<SettingsEntity, SettingsEntity, QDistinct>
+  distinctByPrinterType({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'printerType', caseSensitive: caseSensitive);
     });
   }
 
@@ -1957,9 +2615,33 @@ extension SettingsEntityQueryProperty
     });
   }
 
+  QueryBuilder<SettingsEntity, String, QQueryOperations> printerHostProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'printerHost');
+    });
+  }
+
+  QueryBuilder<SettingsEntity, String, QQueryOperations> printerMacProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'printerMac');
+    });
+  }
+
   QueryBuilder<SettingsEntity, String, QQueryOperations> printerNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'printerName');
+    });
+  }
+
+  QueryBuilder<SettingsEntity, int, QQueryOperations> printerPortProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'printerPort');
+    });
+  }
+
+  QueryBuilder<SettingsEntity, String, QQueryOperations> printerTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'printerType');
     });
   }
 

@@ -54,15 +54,25 @@ const TransactionEntitySchema = CollectionSchema(
       name: r'paymentReference',
       type: IsarType.string,
     ),
-    r'shiftId': PropertySchema(id: 9, name: r'shiftId', type: IsarType.string),
-    r'status': PropertySchema(
+    r'refundNote': PropertySchema(
+      id: 9,
+      name: r'refundNote',
+      type: IsarType.string,
+    ),
+    r'refundedAt': PropertySchema(
       id: 10,
+      name: r'refundedAt',
+      type: IsarType.dateTime,
+    ),
+    r'shiftId': PropertySchema(id: 11, name: r'shiftId', type: IsarType.string),
+    r'status': PropertySchema(
+      id: 12,
       name: r'status',
       type: IsarType.byte,
       enumMap: _TransactionEntitystatusEnumValueMap,
     ),
-    r'stylist': PropertySchema(id: 11, name: r'stylist', type: IsarType.string),
-    r'time': PropertySchema(id: 12, name: r'time', type: IsarType.string),
+    r'stylist': PropertySchema(id: 13, name: r'stylist', type: IsarType.string),
+    r'time': PropertySchema(id: 14, name: r'time', type: IsarType.string),
   },
 
   estimateSize: _transactionEntityEstimateSize,
@@ -128,6 +138,7 @@ int _transactionEntityEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.refundNote.length * 3;
   {
     final value = object.shiftId;
     if (value != null) {
@@ -164,10 +175,12 @@ void _transactionEntitySerialize(
   writer.writeString(offsets[6], object.paymentIntentId);
   writer.writeString(offsets[7], object.paymentMethod);
   writer.writeString(offsets[8], object.paymentReference);
-  writer.writeString(offsets[9], object.shiftId);
-  writer.writeByte(offsets[10], object.status.index);
-  writer.writeString(offsets[11], object.stylist);
-  writer.writeString(offsets[12], object.time);
+  writer.writeString(offsets[9], object.refundNote);
+  writer.writeDateTime(offsets[10], object.refundedAt);
+  writer.writeString(offsets[11], object.shiftId);
+  writer.writeByte(offsets[12], object.status.index);
+  writer.writeString(offsets[13], object.stylist);
+  writer.writeString(offsets[14], object.time);
 }
 
 TransactionEntity _transactionEntityDeserialize(
@@ -198,14 +211,16 @@ TransactionEntity _transactionEntityDeserialize(
   object.paymentIntentId = reader.readStringOrNull(offsets[6]);
   object.paymentMethod = reader.readString(offsets[7]);
   object.paymentReference = reader.readStringOrNull(offsets[8]);
-  object.shiftId = reader.readStringOrNull(offsets[9]);
+  object.refundNote = reader.readString(offsets[9]);
+  object.refundedAt = reader.readDateTimeOrNull(offsets[10]);
+  object.shiftId = reader.readStringOrNull(offsets[11]);
   object.status =
       _TransactionEntitystatusValueEnumMap[reader.readByteOrNull(
-        offsets[10],
+        offsets[12],
       )] ??
       TransactionStatusEntity.paid;
-  object.stylist = reader.readString(offsets[11]);
-  object.time = reader.readString(offsets[12]);
+  object.stylist = reader.readString(offsets[13]);
+  object.time = reader.readString(offsets[14]);
   return object;
 }
 
@@ -247,16 +262,20 @@ P _transactionEntityDeserializeProp<P>(
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 10:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
       return (_TransactionEntitystatusValueEnumMap[reader.readByteOrNull(
                 offset,
               )] ??
               TransactionStatusEntity.paid)
           as P;
-    case 11:
+    case 13:
       return (reader.readString(offset)) as P;
-    case 12:
+    case 14:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1346,6 +1365,220 @@ extension TransactionEntityQueryFilter
   }
 
   QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'refundNote',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'refundNote',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'refundNote',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'refundNote',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'refundNote',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'refundNote',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'refundNote',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'refundNote',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'refundNote', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundNoteIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'refundNote', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'refundedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'refundedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'refundedAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundedAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'refundedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundedAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'refundedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
+  refundedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'refundedAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterFilterCondition>
   shiftIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1963,6 +2196,34 @@ extension TransactionEntityQuerySortBy
   }
 
   QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
+  sortByRefundNote() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refundNote', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
+  sortByRefundNoteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refundNote', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
+  sortByRefundedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refundedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
+  sortByRefundedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refundedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
   sortByShiftId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'shiftId', Sort.asc);
@@ -2133,6 +2394,34 @@ extension TransactionEntityQuerySortThenBy
   }
 
   QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
+  thenByRefundNote() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refundNote', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
+  thenByRefundNoteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refundNote', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
+  thenByRefundedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refundedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
+  thenByRefundedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'refundedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QAfterSortBy>
   thenByShiftId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'shiftId', Sort.asc);
@@ -2251,6 +2540,20 @@ extension TransactionEntityQueryWhereDistinct
   }
 
   QueryBuilder<TransactionEntity, TransactionEntity, QDistinct>
+  distinctByRefundNote({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'refundNote', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QDistinct>
+  distinctByRefundedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'refundedAt');
+    });
+  }
+
+  QueryBuilder<TransactionEntity, TransactionEntity, QDistinct>
   distinctByShiftId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'shiftId', caseSensitive: caseSensitive);
@@ -2345,6 +2648,20 @@ extension TransactionEntityQueryProperty
   paymentReferenceProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'paymentReference');
+    });
+  }
+
+  QueryBuilder<TransactionEntity, String, QQueryOperations>
+  refundNoteProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'refundNote');
+    });
+  }
+
+  QueryBuilder<TransactionEntity, DateTime?, QQueryOperations>
+  refundedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'refundedAt');
     });
   }
 

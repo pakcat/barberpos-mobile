@@ -13,6 +13,7 @@ void main() {
       repo: StubReportsRepository(),
       txRepo: StubTransactionRepository(),
     );
+    controller.filterRange.value = 'Semua';
     controller.entries.addAll([
       FinanceEntry(
         id: '1',

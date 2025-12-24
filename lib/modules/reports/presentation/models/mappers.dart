@@ -11,6 +11,7 @@ FinanceEntryEntity toEntity(FinanceEntry e) {
     ..date = e.date
     ..type = e.type == EntryType.expense ? EntryTypeEntity.expense : EntryTypeEntity.revenue
     ..note = e.note
+    ..transactionCode = e.transactionCode
     ..staff = e.staff
     ..service = e.service;
   entity.id = int.tryParse(e.id) ?? Isar.autoIncrement;

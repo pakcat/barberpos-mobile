@@ -1,17 +1,20 @@
 class OrderLineDto {
   OrderLineDto({
+    this.productId,
     required this.name,
     required this.category,
     required this.price,
     required this.qty,
   });
 
+  final int? productId;
   final String name;
   final String category;
   final int price;
   final int qty;
 
   Map<String, dynamic> toJson() => {
+    if (productId != null) 'productId': productId,
     'name': name,
     'category': category,
     'price': price,
@@ -20,6 +23,7 @@ class OrderLineDto {
 
   factory OrderLineDto.fromJson(Map<String, dynamic> json) {
     return OrderLineDto(
+      productId: int.tryParse(json['productId']?.toString() ?? ''),
       name: json['name']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
       price: int.tryParse(json['price']?.toString() ?? '') ?? 0,
@@ -31,6 +35,7 @@ class OrderLineDto {
 class OrderPayloadDto {
   OrderPayloadDto({
     required this.items,
+    required this.clientRef,
     required this.total,
     required this.paid,
     required this.change,
@@ -42,6 +47,7 @@ class OrderPayloadDto {
   });
 
   final List<OrderLineDto> items;
+  final String clientRef;
   final int total;
   final int paid;
   final int change;
@@ -52,6 +58,7 @@ class OrderPayloadDto {
   final String? shiftId;
 
   Map<String, dynamic> toJson() => {
+    'clientRef': clientRef,
     'items': items.map((e) => e.toJson()).toList(),
     'total': total,
     'paid': paid,

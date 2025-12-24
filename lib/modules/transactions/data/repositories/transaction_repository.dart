@@ -49,6 +49,82 @@ class TransactionRepository {
     await _isar.writeTxn(() => _isar.transactionEntitys.delete(existing.id));
   }
 
+  Future<void> updateCode({required String oldCode, required String newCode}) async {
+    if (oldCode == newCode) return;
+    final existing = await _isar.transactionEntitys.filter().codeEqualTo(oldCode).findFirst();
+    if (existing == null) return;
+    await _isar.writeTxn(() async {
+      await _isar.transactionEntitys.delete(existing.id);
+      existing.code = newCode;
+      await _isar.transactionEntitys.put(existing);
+    });
+  }
+
+  Future<bool> refundByCode({
+    required String code,
+    String? note,
+    bool delete = true,
+  }) async {
+    final remote = restRemote;
+    if (remote != null) {
+      try {
+        await remote.refund(code: code, note: note, delete: delete);
+        if (delete) {
+          await deleteByCode(code);
+        } else {
+          final existing = await _isar.transactionEntitys.filter().codeEqualTo(code).findFirst();
+          if (existing != null) {
+            existing.status = TransactionStatusEntity.refund;
+            existing.refundedAt = DateTime.now();
+            existing.refundNote = note?.trim() ?? '';
+            await _isar.writeTxn(() => _isar.transactionEntitys.put(existing));
+          }
+        }
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    if (delete) {
+      await deleteByCode(code);
+      return true;
+    }
+    final existing = await _isar.transactionEntitys.filter().codeEqualTo(code).findFirst();
+    if (existing == null) return true;
+    existing.status = TransactionStatusEntity.refund;
+    existing.refundedAt = DateTime.now();
+    existing.refundNote = note?.trim() ?? '';
+    await _isar.writeTxn(() => _isar.transactionEntitys.put(existing));
+    return true;
+  }
+
+  Future<bool> markPaidByCode({required String code}) async {
+    final remote = restRemote;
+    if (remote != null) {
+      try {
+        await remote.markPaid(code: code);
+        final existing = await _isar.transactionEntitys.filter().codeEqualTo(code).findFirst();
+        if (existing != null) {
+          existing.status = TransactionStatusEntity.paid;
+          existing.refundedAt = null;
+          existing.refundNote = '';
+          await _isar.writeTxn(() => _isar.transactionEntitys.put(existing));
+        }
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    final existing = await _isar.transactionEntitys.filter().codeEqualTo(code).findFirst();
+    if (existing != null) {
+      existing.status = TransactionStatusEntity.paid;
+      existing.refundedAt = null;
+      existing.refundNote = '';
+      await _isar.writeTxn(() => _isar.transactionEntitys.put(existing));
+    }
+    return true;
+  }
+
   Future<void> replaceAll(Iterable<TransactionEntity> items) async {
     await _isar.writeTxn(() async {
       await _isar.transactionEntitys.clear();

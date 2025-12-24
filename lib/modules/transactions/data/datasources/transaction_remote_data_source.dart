@@ -7,6 +7,24 @@ class TransactionRemoteDataSource {
 
   final Dio _dio;
 
+  Future<void> refund({
+    required String code,
+    String? note,
+    bool delete = true,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/transactions/$code/refund',
+      data: {
+        'note': note ?? '',
+        'delete': delete,
+      },
+    );
+  }
+
+  Future<void> markPaid({required String code}) async {
+    await _dio.post<Map<String, dynamic>>('/transactions/$code/mark-paid');
+  }
+
   Future<List<TransactionEntity>> fetchAll({
     DateTime? startDate,
     DateTime? endDate,
@@ -34,6 +52,8 @@ class TransactionRemoteDataSource {
         ..amount = int.tryParse(json['amount']?.toString() ?? '') ?? 0
         ..paymentMethod = json['paymentMethod']?.toString() ?? ''
         ..status = _statusFromString(json['status']?.toString() ?? '')
+        ..refundedAt = DateTime.tryParse(json['refundedAt']?.toString() ?? '')
+        ..refundNote = json['refundNote']?.toString() ?? ''
         ..stylist = json['stylist']?.toString() ?? ''
         ..items = _mapItems(json['items'])
         ..customer = _mapCustomer(json['customer']);

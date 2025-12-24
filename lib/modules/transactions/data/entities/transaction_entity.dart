@@ -32,6 +32,8 @@ class TransactionEntity {
   String operatorName = '';
   String? paymentIntentId;
   String? paymentReference;
+  DateTime? refundedAt;
+  String refundNote = '';
   @enumerated
   late TransactionStatusEntity status;
   late List<TransactionLineEntity> items;

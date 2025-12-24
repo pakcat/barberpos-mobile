@@ -63,6 +63,19 @@ class StubReportsRepository implements ReportsRepository {
   }
 
   @override
+  Future<void> updateTransactionCode({
+    required String oldCode,
+    required String newCode,
+  }) async {
+    if (oldCode == newCode) return;
+    for (final entry in _entries) {
+      if (entry.transactionCode == oldCode) {
+        entry.transactionCode = newCode;
+      }
+    }
+  }
+
+  @override
   Future<Uint8List?> downloadExport({
     required String format,
     required DateTime start,

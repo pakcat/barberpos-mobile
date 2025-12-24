@@ -2,6 +2,7 @@ import 'package:barberpos_mobile/modules/product/data/entities/product_entity.da
 import 'package:isar_community/isar.dart';
 
 import '../datasources/stock_remote_data_source.dart';
+import '../entities/stock_adjustment_outbox_entity.dart';
 import '../entities/stock_entity.dart';
 
 class StockRepository {
@@ -54,6 +55,47 @@ class StockRepository {
       if (item.id == stockId) return item;
     }
     return null;
+  }
+
+  Future<int> enqueueAdjustment({
+    required int stockId,
+    required int change,
+    required String type,
+    String? note,
+    int? productId,
+  }) async {
+    final entity = StockAdjustmentOutboxEntity()
+      ..stockId = stockId
+      ..change = change
+      ..type = type
+      ..note = note?.trim() ?? ''
+      ..productId = productId
+      ..createdAt = DateTime.now()
+      ..synced = false;
+    return _isar.writeTxn(() async {
+      return _isar.stockAdjustmentOutboxEntitys.put(entity);
+    });
+  }
+
+  Future<List<StockAdjustmentOutboxEntity>> getPendingAdjustments({int limit = 50}) async {
+    return _isar.stockAdjustmentOutboxEntitys
+        .filter()
+        .syncedEqualTo(false)
+        .sortByCreatedAt()
+        .limit(limit)
+        .findAll();
+  }
+
+  Future<void> markAdjustmentsSynced(List<int> ids) async {
+    if (ids.isEmpty) return;
+    await _isar.writeTxn(() async {
+      final rows = await _isar.stockAdjustmentOutboxEntitys.getAll(ids);
+      final updated = rows.whereType<StockAdjustmentOutboxEntity>().toList();
+      for (final e in updated) {
+        e.synced = true;
+      }
+      await _isar.stockAdjustmentOutboxEntitys.putAll(updated);
+    });
   }
 
   Future<List<Map<String, dynamic>>> historyRemote(int stockId, {int limit = 50}) async {

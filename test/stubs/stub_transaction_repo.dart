@@ -34,6 +34,31 @@ class StubTransactionRepository implements TransactionRepository {
   }
 
   @override
+  Future<void> updateCode({required String oldCode, required String newCode}) async {
+    final existing = _txs.where((e) => e.code == oldCode).toList();
+    if (existing.isEmpty) return;
+    existing.first.code = newCode;
+  }
+
+  @override
+  Future<bool> refundByCode({
+    required String code,
+    String? note,
+    bool delete = true,
+  }) async {
+    _txs.removeWhere((e) => e.code == code);
+    return true;
+  }
+
+  @override
+  Future<bool> markPaidByCode({required String code}) async {
+    final existing = _txs.where((e) => e.code == code).toList();
+    if (existing.isEmpty) return true;
+    existing.first.status = TransactionStatusEntity.paid;
+    return true;
+  }
+
+  @override
   Future<List<TransactionEntity>> getAll() async => _txs;
 
   @override

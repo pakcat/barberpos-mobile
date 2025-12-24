@@ -11,6 +11,7 @@ class FinanceEntryDto {
     required this.date,
     required this.type,
     this.note = '',
+    this.transactionCode,
     this.staff,
     this.service,
   });
@@ -22,6 +23,7 @@ class FinanceEntryDto {
   final DateTime date;
   final String type;
   final String note;
+  final String? transactionCode;
   final String? staff;
   final String? service;
 
@@ -34,6 +36,7 @@ class FinanceEntryDto {
       date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
       type: json['type']?.toString() ?? 'revenue',
       note: json['note']?.toString() ?? '',
+      transactionCode: json['transactionCode']?.toString(),
       staff: json['staff']?.toString(),
       service: json['service']?.toString(),
     );
@@ -47,6 +50,7 @@ class FinanceEntryDto {
       ..date = date
       ..type = _typeFromString(type)
       ..note = note
+      ..transactionCode = transactionCode
       ..staff = staff
       ..service = service;
     entity.id = int.tryParse(id) ?? Isar.autoIncrement;

@@ -103,7 +103,22 @@ class StockController extends GetxController {
         }
         products.assignAll((await repo.getAll()).map(_map));
       } catch (_) {
-        // fallback to local adjust below
+        // Queue for sync + optimistic local update.
+        await repo.enqueueAdjustment(
+          stockId: stockId,
+          change: qty,
+          type: type.name,
+          note: note.value.isEmpty ? null : note.value,
+          productId: productId,
+        );
+        final product = await _productRepo.getById(productId);
+        if (product != null) {
+          product.stock = (product.stock + delta).clamp(0, 1 << 31);
+          await _productRepo.upsert(product);
+          newStock = product.stock;
+          await _load();
+        }
+        Get.snackbar('Offline', 'Penyesuaian stok disimpan dan akan disinkronkan.');
       }
     }
 

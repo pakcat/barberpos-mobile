@@ -251,10 +251,29 @@ class _TransactionTile extends StatelessWidget {
   final TransactionItem item;
   final VoidCallback onTap;
 
+  String _summaryText() {
+    if (item.items.isEmpty) return 'Tanpa item';
+    final parts = item.items
+        .where((e) => e.name.trim().isNotEmpty)
+        .map((e) => e.qty > 1 ? '${e.name} x${e.qty}' : e.name)
+        .toList();
+    if (parts.isEmpty) return 'Tanpa item';
+    if (parts.length <= 2) return parts.join(', ');
+    final shown = parts.take(2).join(', ');
+    final more = parts.length - 2;
+    return '$shown +$more lainnya';
+  }
+
+  String _formatTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isPaid = item.status == TransactionStatus.paid;
-    final statusColor = isPaid ? AppColors.green500 : AppColors.orange500;
+    final isRefund = item.status == TransactionStatus.refund;
+    final isPending = item.id.startsWith('PENDING-');
+    final statusColor = isPending ? AppColors.orange500 : (isPaid ? AppColors.green500 : AppColors.red500);
 
     return Container(
       decoration: BoxDecoration(
@@ -279,26 +298,86 @@ class _TransactionTile extends StatelessWidget {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(AppDimens.spacingMd),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              item.id,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                     child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      item.id,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (isRefund) ...[
+                                    const SizedBox(width: AppDimens.spacingSm),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.red500.withAlpha((0.18 * 255).round()),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                      child: const Text(
+                                        'REFUND',
+                                        style: TextStyle(
+                                          color: AppColors.red500,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.4,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (isPending) ...[
+                                    const SizedBox(width: AppDimens.spacingSm),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.orange500.withAlpha((0.18 * 255).round()),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                      child: const Text(
+                                        'PENDING',
+                                        style: TextStyle(
+                                          color: AppColors.orange500,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.4,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
-                            Text(
-                              item.time,
-                              style: const TextStyle(color: Colors.white54, fontSize: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  item.time,
+                                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                ),
+                                if (isRefund && item.refundedAt != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _formatTime(item.refundedAt!),
+                                    style: const TextStyle(color: AppColors.red300, fontSize: 11),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
-                        ),
+                         ),
                         const SizedBox(height: AppDimens.spacingSm),
                         Row(
                           children: [
@@ -319,7 +398,7 @@ class _TransactionTile extends StatelessWidget {
                             const SizedBox(width: AppDimens.spacingSm),
                             Expanded(
                               child: Text(
-                                'Potong Pria, Potong...', // Ideally this should come from the model
+                                _summaryText(),
                                 style: const TextStyle(color: Colors.white70, fontSize: 13),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -327,6 +406,15 @@ class _TransactionTile extends StatelessWidget {
                             ),
                           ],
                         ),
+                        if (isRefund && (item.refundNote?.trim().isNotEmpty ?? false)) ...[
+                          const SizedBox(height: AppDimens.spacingSm),
+                          Text(
+                            item.refundNote!.trim(),
+                            style: const TextStyle(color: AppColors.red300, fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                         const SizedBox(height: AppDimens.spacingMd),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -362,7 +450,7 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPaid = status == TransactionStatus.paid;
-    final color = isPaid ? AppColors.green500 : AppColors.orange500;
+    final color = isPaid ? AppColors.green500 : AppColors.red500;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimens.spacingSm,

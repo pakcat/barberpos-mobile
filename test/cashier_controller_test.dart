@@ -1,5 +1,7 @@
 import 'package:barberpos_mobile/modules/cashier/presentation/controllers/cashier_controller.dart';
+import 'package:barberpos_mobile/modules/cashier/presentation/models/cashier_item.dart';
 import 'package:barberpos_mobile/modules/cashier/presentation/models/checkout_models.dart';
+import 'package:barberpos_mobile/core/config/app_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
@@ -18,6 +20,7 @@ void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     Get.testMode = true;
+    Get.put(const AppConfig(backend: BackendMode.local, baseUrl: 'http://localhost'));
     controller = CashierController(
       repo: StubCashierRepository(),
       transactionRepository: StubTransactionRepository(),
@@ -27,6 +30,11 @@ void main() {
       remote: StubCashierRemote(),
       attendanceRepository: StubAttendanceRepository(),
       paymentRemoteDataSource: StubPaymentRemote(),
+    );
+    controller.services.assignAll(
+      const [
+        ServiceItem(id: '1', name: 'Haircut', category: 'Service', price: 'Rp10000', image: ''),
+      ],
     );
     controller.selectedStylist.value = 'Awan';
   });

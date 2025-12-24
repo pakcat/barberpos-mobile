@@ -9,6 +9,10 @@ class SettingsDto {
     required this.receiptFooter,
     required this.defaultPaymentMethod,
     required this.printerName,
+    required this.printerType,
+    required this.printerHost,
+    required this.printerPort,
+    required this.printerMac,
     required this.paperSize,
     required this.autoPrint,
     required this.notifications,
@@ -24,6 +28,10 @@ class SettingsDto {
   final String receiptFooter;
   final String defaultPaymentMethod;
   final String printerName;
+  final String printerType;
+  final String printerHost;
+  final int printerPort;
+  final String printerMac;
   final String paperSize;
   final bool autoPrint;
   final bool notifications;
@@ -40,6 +48,10 @@ class SettingsDto {
       receiptFooter: json['receiptFooter']?.toString() ?? '',
       defaultPaymentMethod: json['defaultPaymentMethod']?.toString() ?? '',
       printerName: json['printerName']?.toString() ?? '',
+      printerType: json['printerType']?.toString() ?? 'system',
+      printerHost: json['printerHost']?.toString() ?? '',
+      printerPort: int.tryParse(json['printerPort']?.toString() ?? '') ?? 9100,
+      printerMac: json['printerMac']?.toString() ?? '',
       paperSize: json['paperSize']?.toString() ?? '',
       autoPrint: json['autoPrint'] == true,
       notifications: json['notifications'] != false,
@@ -58,6 +70,10 @@ class SettingsDto {
       receiptFooter: receiptFooter,
       defaultPaymentMethod: defaultPaymentMethod,
       printerName: printerName,
+      printerType: printerType,
+      printerHost: printerHost,
+      printerPort: printerPort,
+      printerMac: printerMac,
       paperSize: paperSize,
       autoPrint: autoPrint,
       notifications: notifications,

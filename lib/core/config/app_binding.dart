@@ -29,6 +29,7 @@ import '../services/session_service.dart';
 import 'app_config.dart';
 import '../network/network_service.dart';
 import '../../modules/closing/data/repositories/closing_repository.dart';
+import '../../modules/cashier/data/repositories/order_outbox_repository.dart';
 
 class GlobalBindings extends Bindings {
   @override
@@ -42,6 +43,7 @@ class GlobalBindings extends Bindings {
 
     Get.put<ActivityLogService>(ActivityLogService(dbReady: dbReady), permanent: true);
     Get.lazyPut<SessionService>(() => SessionService(db.isar), fenix: true);
+    Get.put<OrderOutboxRepository>(OrderOutboxRepository(dbReady), permanent: true);
 
     // Network service is registered for REST backend; safe fallback if offline/local.
     Get.lazyPut<NetworkService>(() {
