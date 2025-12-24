@@ -29,7 +29,7 @@ class CustomerFormView extends GetView<ManagementController> {
       final phone = phoneController.text.trim();
       if (name.isEmpty || phone.isEmpty) return;
       final item = CustomerItem(
-        id: id ?? DateTime.now().toIso8601String(),
+        id: id ?? '0',
         name: name,
         phone: phone,
         email: emailController.text.trim(),

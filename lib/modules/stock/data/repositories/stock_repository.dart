@@ -26,8 +26,44 @@ class StockRepository {
   }
 
   Future<Id> upsert(StockEntity stock) async {
-    // REST adjustments handled via StockRemoteDataSource in the controller.
     return _isar.writeTxn(() => _isar.stockEntitys.put(stock));
+  }
+
+  Future<StockEntity?> adjustRemote({
+    required int stockId,
+    required int change,
+    required String type,
+    String? note,
+    int? productId,
+  }) async {
+    final remote = restRemote;
+    if (remote == null) return null;
+
+    await remote.adjust(
+      stockId: stockId,
+      change: change,
+      type: type,
+      note: note,
+      productId: productId,
+    );
+
+    final latest = await remote.fetchAll();
+    await replaceAll(latest);
+
+    for (final item in latest) {
+      if (item.id == stockId) return item;
+    }
+    return null;
+  }
+
+  Future<List<Map<String, dynamic>>> historyRemote(int stockId, {int limit = 50}) async {
+    final remote = restRemote;
+    if (remote == null) return const [];
+    try {
+      return await remote.history(stockId, limit: limit);
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<void> replaceAll(Iterable<StockEntity> items) async {

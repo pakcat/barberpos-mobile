@@ -38,6 +38,12 @@ class SplashController extends GetxController {
     }
 
     try {
+      await _regionService.init();
+    } catch (_) {
+      // Ignore region bootstrap errors
+    }
+
+    try {
       await _push?.init();
     } catch (_) {
       // Ignore push init errors

@@ -33,10 +33,11 @@ class NotificationService extends GetxService {
     required String title,
     required String message,
     NotificationType type = NotificationType.info,
+    bool syncRemote = true,
   }) async {
     final item = NotificationMessage(title: title, message: message, type: type);
     notifications.insert(0, item);
-    if (!_useRest) return;
+    if (!_useRest || !syncRemote) return;
     try {
       final res = await _network!.dio.post<Map<String, dynamic>>(
         '/notifications',

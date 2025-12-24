@@ -208,6 +208,43 @@ class _FilterSection extends StatelessWidget {
               isActive: controller.filterRange.value == 'Bulan ini',
               onTap: () => controller.filterRange.value = 'Bulan ini',
             ),
+            const SizedBox(width: AppDimens.spacingMd),
+            IconButton(
+              tooltip: 'Export',
+              onPressed: controller.exporting.value
+                  ? null
+                  : () {
+                      Get.dialog(
+                        AlertDialog(
+                          title: const Text('Export Laporan'),
+                          content: const Text('Pilih format file untuk download.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Get.back();
+                                controller.downloadExport(format: 'csv');
+                              },
+                              child: const Text('CSV'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Get.back();
+                                controller.downloadExport(format: 'xlsx');
+                              },
+                              child: const Text('Excel (XLSX)'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+              icon: controller.exporting.value
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_rounded, color: Colors.white),
+            ),
           ],
         ),
       ),

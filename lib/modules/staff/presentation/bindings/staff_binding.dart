@@ -4,7 +4,6 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/database/local_database.dart';
 import '../../../../core/network/network_service.dart';
 import '../../data/datasources/attendance_remote_data_source.dart';
-import '../../data/datasources/staff_remote_data_source.dart';
 import '../../data/repositories/attendance_repository.dart';
 import '../controllers/staff_controller.dart';
 
@@ -22,12 +21,7 @@ class StaffBinding extends Bindings {
       ),
     );
     Get.lazyPut<StaffController>(
-      () => StaffController(
-        restRemote: config.backend == BackendMode.rest
-            ? StaffRemoteDataSource(Get.find<NetworkService>().dio)
-            : null,
-        config: config,
-      ),
+      () => StaffController(),
     );
   }
 }

@@ -14,7 +14,7 @@ class MembershipRepository {
     if (remote != null) {
       try {
         final items = await remote!.fetchTopups();
-        await _replaceTopups(items);
+        await replaceTopups(items);
         return items;
       } catch (_) {}
     }
@@ -80,7 +80,7 @@ class MembershipRepository {
     });
   }
 
-  Future<void> _replaceTopups(Iterable<MembershipTopupEntity> items) async {
+  Future<void> replaceTopups(Iterable<MembershipTopupEntity> items) async {
     await _isar.writeTxn(() async {
       await _isar.membershipTopupEntitys.clear();
       await _isar.membershipTopupEntitys.putAll(items.toList());

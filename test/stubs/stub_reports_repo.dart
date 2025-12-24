@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:barberpos_mobile/modules/reports/data/datasources/finance_remote_data_source.dart';
 import 'package:barberpos_mobile/modules/reports/data/entities/finance_entry_entity.dart';
 import 'package:barberpos_mobile/modules/reports/data/repositories/reports_repository.dart';
@@ -58,6 +60,15 @@ class StubReportsRepository implements ReportsRepository {
     _entries
       ..clear()
       ..addAll(items);
+  }
+
+  @override
+  Future<Uint8List?> downloadExport({
+    required String format,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    return null;
   }
 
   @override

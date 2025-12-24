@@ -9,19 +9,19 @@ class CashierRemoteDataSource {
   final Dio _dio;
 
   Future<OrderResponseDto> submitOrder(OrderPayloadDto payload) async {
-    try {
-      final res = await _dio.post<Map<String, dynamic>>('/orders', data: payload.toJson());
-      return OrderResponseDto.fromJson(res.data ?? <String, dynamic>{});
-    } catch (_) {
-      final generatedId = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
-      return OrderResponseDto.fallback(payload: payload, generatedId: generatedId);
-    }
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/orders',
+      data: payload.toJson(),
+    );
+    return OrderResponseDto.fromJson(res.data ?? <String, dynamic>{});
   }
 
   Future<List<ServiceItem>> fetchServices() async {
     final res = await _dio.get<List<dynamic>>('/services');
     final data = res.data ?? const [];
     return data
+        .whereType<Map>()
+        .map((raw) => Map<String, dynamic>.from(raw))
         .map(
           (raw) => ServiceItem(
             name: raw['name']?.toString() ?? '',

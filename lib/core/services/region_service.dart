@@ -27,7 +27,9 @@ class RegionService extends GetxService {
 
   Future<RegionService> init() async {
     await _loadFromDb();
-    await load();
+    if (regions.isEmpty) {
+      await load();
+    }
     return this;
   }
 

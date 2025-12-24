@@ -36,7 +36,17 @@ class TransactionRepository {
 
   Future<Id> upsert(TransactionEntity tx) async {
     // Transaction creation through REST API is handled in the cashier flow.
+    final existing = await _isar.transactionEntitys.filter().codeEqualTo(tx.code).findFirst();
+    if (existing != null) {
+      tx.id = existing.id;
+    }
     return _isar.writeTxn(() => _isar.transactionEntitys.put(tx));
+  }
+
+  Future<void> deleteByCode(String code) async {
+    final existing = await _isar.transactionEntitys.filter().codeEqualTo(code).findFirst();
+    if (existing == null) return;
+    await _isar.writeTxn(() => _isar.transactionEntitys.delete(existing.id));
   }
 
   Future<void> replaceAll(Iterable<TransactionEntity> items) async {

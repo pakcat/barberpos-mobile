@@ -22,11 +22,11 @@ class TransactionRemoteDataSource {
       '/transactions',
       queryParameters: params.isEmpty ? null : params,
     );
-    final data = res.data ?? [];
-    return data.map<TransactionEntity>((json) {
+    final data = res.data ?? const [];
+    return data.whereType<Map>().map<TransactionEntity>((raw) {
+      final json = Map<String, dynamic>.from(raw);
       return TransactionEntity()
-        ..id =
-            int.tryParse(json['id']?.toString() ?? '') ?? TransactionEntity().id
+        ..id = int.tryParse(json['id']?.toString() ?? '') ?? 0
         ..code = json['code']?.toString() ?? ''
         ..date =
             DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now()
@@ -49,25 +49,28 @@ class TransactionRemoteDataSource {
   List<TransactionLineEntity> _mapItems(dynamic items) {
     if (items is! Iterable) return [];
     return items
-        .map(
-          (raw) => TransactionLineEntity()
-            ..name = raw['name']?.toString() ?? ''
-            ..category = raw['category']?.toString() ?? ''
-            ..price = int.tryParse(raw['price']?.toString() ?? '') ?? 0
-            ..qty = int.tryParse(raw['qty']?.toString() ?? '') ?? 0,
-        )
+        .whereType<Map>()
+        .map((raw) {
+          final json = Map<String, dynamic>.from(raw);
+          return TransactionLineEntity()
+            ..name = json['name']?.toString() ?? ''
+            ..category = json['category']?.toString() ?? ''
+            ..price = int.tryParse(json['price']?.toString() ?? '') ?? 0
+            ..qty = int.tryParse(json['qty']?.toString() ?? '') ?? 0;
+        })
         .toList();
   }
 
   TransactionCustomerEntity? _mapCustomer(dynamic customer) {
-    if (customer == null) return null;
+    if (customer is! Map) return null;
+    final json = Map<String, dynamic>.from(customer);
     return TransactionCustomerEntity()
-      ..name = customer['name']?.toString() ?? ''
-      ..phone = customer['phone']?.toString() ?? ''
-      ..email = customer['email']?.toString() ?? ''
-      ..address = customer['address']?.toString() ?? ''
-      ..visits = int.tryParse(customer['visits']?.toString() ?? '') ?? 0
-      ..lastVisit = customer['lastVisit']?.toString() ?? '';
+      ..name = json['name']?.toString() ?? ''
+      ..phone = json['phone']?.toString() ?? ''
+      ..email = json['email']?.toString() ?? ''
+      ..address = json['address']?.toString() ?? ''
+      ..visits = int.tryParse(json['visits']?.toString() ?? '') ?? 0
+      ..lastVisit = json['lastVisit']?.toString() ?? '';
   }
 
   String _formatDate(DateTime date) {

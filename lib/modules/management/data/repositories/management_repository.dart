@@ -33,13 +33,19 @@ class ManagementRepository {
   }
 
   Future<Id> upsertCategory(CategoryEntity category) async {
+    final originalId = category.id;
     if (remote != null) {
       try {
         final saved = await remote!.upsertCategory(category);
         category.id = saved.id;
       } catch (_) {}
     }
-    return _isar.writeTxn(() => _isar.categoryEntitys.put(category));
+    return _isar.writeTxn(() async {
+      if (originalId > 0 && category.id != originalId) {
+        await _isar.categoryEntitys.delete(originalId);
+      }
+      return _isar.categoryEntitys.put(category);
+    });
   }
 
   Future<void> deleteCategory(Id id) async {
@@ -52,13 +58,19 @@ class ManagementRepository {
   }
 
   Future<Id> upsertCustomer(CustomerEntity customer) async {
+    final originalId = customer.id;
     if (remote != null) {
       try {
         final saved = await remote!.upsertCustomer(customer);
         customer.id = saved.id;
       } catch (_) {}
     }
-    return _isar.writeTxn(() => _isar.customerEntitys.put(customer));
+    return _isar.writeTxn(() async {
+      if (originalId > 0 && customer.id != originalId) {
+        await _isar.customerEntitys.delete(originalId);
+      }
+      return _isar.customerEntitys.put(customer);
+    });
   }
 
   Future<void> deleteCustomer(Id id) async {

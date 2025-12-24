@@ -1,9 +1,5 @@
 import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
 
-import '../../../../core/config/app_config.dart';
-import '../../../../core/network/network_service.dart';
-import '../../data/datasources/management_remote_data_source.dart';
 import '../../data/entities/category_entity.dart';
 import '../../data/entities/customer_entity.dart';
 import '../../data/repositories/management_repository.dart';
@@ -12,17 +8,10 @@ import '../models/management_models.dart';
 class ManagementController extends GetxController {
   ManagementController({
     ManagementRepository? repository,
-    ManagementRemoteDataSource? restRemote,
-    AppConfig? config,
-    NetworkService? network,
   })  : repo = repository ?? Get.find<ManagementRepository>(),
-        _config = config ?? Get.find<AppConfig>(),
-        _rest = restRemote ??
-            ManagementRemoteDataSource((network ?? Get.find<NetworkService>()).dio);
+        super();
 
   final ManagementRepository repo;
-  final AppConfig _config;
-  final ManagementRemoteDataSource _rest;
 
   final RxList<CategoryItem> categories = <CategoryItem>[].obs;
   final RxList<CustomerItem> customers = <CustomerItem>[].obs;
@@ -37,20 +26,10 @@ class ManagementController extends GetxController {
   Future<void> _loadData() async {
     loading.value = true;
     try {
-      if (_config.backend == BackendMode.rest) {
-        final remoteCats = await _rest.fetchCategories();
-        await repo.replaceCategories(remoteCats);
-        categories.assignAll(remoteCats.map(_mapCategory));
-
-        final remoteCust = await _rest.fetchCustomers();
-        await repo.replaceCustomers(remoteCust);
-        customers.assignAll(remoteCust.map(_mapCustomer));
-      } else {
-        final cats = await repo.getCategories();
-        categories.assignAll(cats.map(_mapCategory));
-        final cust = await repo.getCustomers();
-        customers.assignAll(cust.map(_mapCustomer));
-      }
+      final cats = await repo.getCategories();
+      categories.assignAll(cats.map(_mapCategory));
+      final cust = await repo.getCustomers();
+      customers.assignAll(cust.map(_mapCustomer));
     } catch (_) {
       final cats = await repo.getCategories();
       categories.assignAll(cats.map(_mapCategory));
@@ -67,56 +46,52 @@ class ManagementController extends GetxController {
   CustomerItem? getCustomerById(String id) =>
       customers.firstWhereOrNull((c) => c.id == id);
 
-  void upsertCategory(CategoryItem item) {
-    final index = categories.indexWhere((c) => c.id == item.id);
-    if (index >= 0) {
-      categories[index] = item;
+  Future<void> upsertCategory(CategoryItem item) async {
+    final existingIndex = categories.indexWhere((c) => c.id == item.id);
+    if (existingIndex >= 0) {
+      categories[existingIndex] = item;
     } else {
       categories.add(item);
     }
     final entity = _toCategoryEntity(item);
-    if (_config.backend == BackendMode.rest) {
-      _rest.upsertCategory(entity);
-    }
-    repo.upsertCategory(entity);
+    final savedId = await repo.upsertCategory(entity);
+    _updateCategoryId(tempId: item.id, savedId: savedId);
   }
 
-  void deleteCategory(String id) {
+  Future<void> deleteCategory(String id) async {
     final existing = categories.firstWhereOrNull((c) => c.id == id);
     categories.removeWhere((c) => c.id == id);
     if (existing != null) {
-      final parsedId = int.tryParse(id) ?? existing.id.hashCode;
-      repo.deleteCategory(parsedId);
-      if (_config.backend == BackendMode.rest) {
-        _rest.deleteCategory(parsedId);
+      final parsedId = int.tryParse(id);
+      if (parsedId != null) {
+        await repo.deleteCategory(parsedId);
+      } else {
+        // If the item never got a numeric ID, it's only local UI state.
       }
     }
   }
 
-  void upsertCustomer(CustomerItem item) {
-    final index = customers.indexWhere((c) => c.id == item.id);
-    if (index >= 0) {
-      customers[index] = item;
+  Future<void> upsertCustomer(CustomerItem item) async {
+    final existingIndex = customers.indexWhere((c) => c.id == item.id);
+    if (existingIndex >= 0) {
+      customers[existingIndex] = item;
     } else {
       customers.add(item);
     }
-    customers.refresh();
     final entity = _toCustomerEntity(item);
-    if (_config.backend == BackendMode.rest) {
-      _rest.upsertCustomer(entity);
-    }
-    repo.upsertCustomer(entity);
+    final savedId = await repo.upsertCustomer(entity);
+    _updateCustomerId(tempId: item.id, savedId: savedId);
   }
 
-  void deleteCustomer(String id) {
+  Future<void> deleteCustomer(String id) async {
     final existing = customers.firstWhereOrNull((c) => c.id == id);
     customers.removeWhere((c) => c.id == id);
-    customers.refresh();
     if (existing != null) {
-      final parsedId = int.tryParse(id) ?? existing.id.hashCode;
-      repo.deleteCustomer(parsedId);
-      if (_config.backend == BackendMode.rest) {
-        _rest.deleteCustomer(parsedId);
+      final parsedId = int.tryParse(id);
+      if (parsedId != null) {
+        await repo.deleteCustomer(parsedId);
+      } else {
+        // If the item never got a numeric ID, it's only local UI state.
       }
     }
   }
@@ -132,7 +107,7 @@ class ManagementController extends GetxController {
 
   CategoryEntity _toCategoryEntity(CategoryItem item) {
     final entity = CategoryEntity()..name = item.name;
-    entity.id = int.tryParse(item.id) ?? Isar.autoIncrement;
+    entity.id = int.tryParse(item.id) ?? 0;
     return entity;
   }
 
@@ -142,7 +117,33 @@ class ManagementController extends GetxController {
       ..phone = item.phone
       ..email = item.email
       ..address = item.address;
-    entity.id = int.tryParse(item.id) ?? Isar.autoIncrement;
+    entity.id = int.tryParse(item.id) ?? 0;
     return entity;
+  }
+
+  void _updateCategoryId({required String tempId, required int savedId}) {
+    if (savedId <= 0) return;
+    final newId = savedId.toString();
+    if (tempId == newId) return;
+    final idx = categories.indexWhere((c) => c.id == tempId);
+    if (idx == -1) return;
+    final current = categories[idx];
+    categories[idx] = CategoryItem(id: newId, name: current.name);
+  }
+
+  void _updateCustomerId({required String tempId, required int savedId}) {
+    if (savedId <= 0) return;
+    final newId = savedId.toString();
+    if (tempId == newId) return;
+    final idx = customers.indexWhere((c) => c.id == tempId);
+    if (idx == -1) return;
+    final current = customers[idx];
+    customers[idx] = CustomerItem(
+      id: newId,
+      name: current.name,
+      phone: current.phone,
+      email: current.email,
+      address: current.address,
+    );
   }
 }

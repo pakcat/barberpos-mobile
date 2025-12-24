@@ -233,16 +233,6 @@ class CashierController extends GetxController {
     final id = await _attendanceRepo.upsert(entity);
     entity.id = id;
     lastCheckIn.value = now;
-    try {
-      await Get.find<NetworkService>().dio.post(
-        '/attendance/checkin',
-        data: {
-          'employeeName': name,
-          'checkIn': now.toIso8601String(),
-          'source': 'cashier',
-        },
-      );
-    } catch (_) {}
     _logs.add(
       title: 'Check-in stylist',
       message: '$name check-in via kasir',
@@ -366,14 +356,9 @@ class CashierController extends GetxController {
 
       final payload = _buildPayload();
       OrderResponseDto response;
-      try {
-        response = _useRest
-            ? await _remote.submitOrder(payload)
-            : OrderResponseDto.fallback(
-                payload: payload,
-                generatedId: _localOrderCode(),
-              );
-      } catch (_) {
+      if (_useRest) {
+        response = await _remote.submitOrder(payload);
+      } else {
         response = OrderResponseDto.fallback(
           payload: payload,
           generatedId: _localOrderCode(),

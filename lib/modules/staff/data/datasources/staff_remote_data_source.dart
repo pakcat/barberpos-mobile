@@ -10,18 +10,19 @@ class StaffRemoteDataSource {
   Future<List<EmployeeEntity>> fetchAll() async {
     final res = await _dio.get<List<dynamic>>('/employees');
     final data = res.data ?? const [];
-    return data.map((raw) {
+    return data.whereType<Map>().map((raw) {
+      final json = Map<String, dynamic>.from(raw);
       final e = EmployeeEntity()
-        ..name = raw['name']?.toString() ?? ''
-        ..role = raw['role']?.toString() ?? ''
-        ..phone = raw['phone']?.toString() ?? ''
-        ..email = raw['email']?.toString() ?? ''
-        ..commission = double.tryParse(raw['commission']?.toString() ?? '') ?? 0
+        ..name = json['name']?.toString() ?? ''
+        ..role = json['role']?.toString() ?? ''
+        ..phone = json['phone']?.toString() ?? ''
+        ..email = json['email']?.toString() ?? ''
+        ..commission = double.tryParse(json['commission']?.toString() ?? '') ?? 0
         ..joinDate =
-            DateTime.tryParse(raw['joinDate']?.toString() ?? '') ??
+            DateTime.tryParse(json['joinDate']?.toString() ?? '') ??
             DateTime.now()
-        ..active = raw['active'] == true;
-      e.id = int.tryParse(raw['id']?.toString() ?? '') ?? 0;
+        ..active = json['active'] == true;
+      e.id = int.tryParse(json['id']?.toString() ?? '') ?? 0;
       return e;
     }).toList();
   }

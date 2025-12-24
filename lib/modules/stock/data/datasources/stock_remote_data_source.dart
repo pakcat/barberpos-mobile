@@ -10,7 +10,9 @@ class StockRemoteDataSource {
   Future<List<StockEntity>> fetchAll() async {
     final res = await _dio.get<List<dynamic>>('/stock');
     final data = res.data ?? const [];
-    return data.map(_toEntity).toList();
+    return data.whereType<Map>().map((raw) {
+      return _toEntity(Map<String, dynamic>.from(raw));
+    }).toList();
   }
 
   Future<StockEntity> adjust({
@@ -32,10 +34,10 @@ class StockRemoteDataSource {
     );
     final data = res.data ?? <String, dynamic>{};
     final entity = StockEntity()
-      ..name = data['name']?.toString() ?? ''
-      ..category = data['category']?.toString() ?? ''
-      ..image = data['image']?.toString() ?? ''
-      ..stock = int.tryParse(data['stock']?.toString() ?? '') ?? change
+      ..name = ''
+      ..category = ''
+      ..image = ''
+      ..stock = int.tryParse(data['stock']?.toString() ?? '') ?? 0
       ..transactions = int.tryParse(data['transactions']?.toString() ?? '') ?? 0;
     entity.id = stockId;
     return entity;
@@ -44,10 +46,10 @@ class StockRemoteDataSource {
   Future<List<Map<String, dynamic>>> history(int stockId, {int limit = 50}) async {
     final res = await _dio.get<List<dynamic>>('/stock/$stockId/history', queryParameters: {'limit': limit});
     final data = res.data ?? const [];
-    return data.whereType<Map<String, dynamic>>().toList();
+    return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  StockEntity _toEntity(dynamic raw) {
+  StockEntity _toEntity(Map<String, dynamic> raw) {
     final entity = StockEntity()
       ..name = raw['name']?.toString() ?? ''
       ..category = raw['category']?.toString() ?? ''

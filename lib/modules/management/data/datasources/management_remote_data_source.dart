@@ -11,25 +11,33 @@ class ManagementRemoteDataSource {
   Future<List<CategoryEntity>> fetchCategories() async {
     final res = await _dio.get<List<dynamic>>('/categories');
     final data = res.data ?? const [];
-    return data.map((raw) {
-      final e = CategoryEntity()..name = raw['name']?.toString() ?? '';
-      e.id = _toId(raw['id']);
-      return e;
-    }).toList();
+    return data
+        .whereType<Map>()
+        .map((raw) => Map<String, dynamic>.from(raw))
+        .map((raw) {
+          final e = CategoryEntity()..name = raw['name']?.toString() ?? '';
+          e.id = _toId(raw['id']);
+          return e;
+        })
+        .toList();
   }
 
   Future<List<CustomerEntity>> fetchCustomers() async {
     final res = await _dio.get<List<dynamic>>('/customers');
     final data = res.data ?? const [];
-    return data.map((raw) {
-      final e = CustomerEntity()
-        ..name = raw['name']?.toString() ?? ''
-        ..phone = raw['phone']?.toString() ?? ''
-        ..email = raw['email']?.toString() ?? ''
-        ..address = raw['address']?.toString() ?? '';
-      e.id = _toId(raw['id']);
-      return e;
-    }).toList();
+    return data
+        .whereType<Map>()
+        .map((raw) => Map<String, dynamic>.from(raw))
+        .map((raw) {
+          final e = CustomerEntity()
+            ..name = raw['name']?.toString() ?? ''
+            ..phone = raw['phone']?.toString() ?? ''
+            ..email = raw['email']?.toString() ?? ''
+            ..address = raw['address']?.toString() ?? '';
+          e.id = _toId(raw['id']);
+          return e;
+        })
+        .toList();
   }
 
   Future<CategoryEntity> upsertCategory(CategoryEntity category) async {
@@ -69,5 +77,11 @@ class ManagementRemoteDataSource {
   Future<void> deleteCustomer(int id) => _dio.delete('/customers/$id');
 
   int _toId(dynamic value) => int.tryParse(value?.toString() ?? '') ?? 0;
-  int? _nullableId(int id) => id <= 0 ? null : id;
+  int? _nullableId(int id) {
+    // Only send ID if it looks like a server ID (small positive int).
+    // Local/temp Isar IDs can collide with server sequences if sent as-is.
+    if (id <= 0) return null;
+    if (id >= 1000000000) return null;
+    return id;
+  }
 }

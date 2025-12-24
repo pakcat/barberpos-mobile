@@ -45,8 +45,23 @@ class ClosingController extends GetxController {
 
   Future<void> _load() async {
     await _loadSummaryFromApi();
+    await _syncHistoryFromApi();
     final data = await repo.getAll();
     history.assignAll(data);
+  }
+
+  Future<void> _syncHistoryFromApi() async {
+    if (_config.backend != BackendMode.rest) return;
+    final remote = _remote;
+    if (remote == null) return;
+    try {
+      final items = await remote.fetchHistory(limit: 100);
+      if (items.isNotEmpty) {
+        await repo.replaceAll(items);
+      }
+    } catch (_) {
+      // keep local-only if API unavailable
+    }
   }
 
   Future<void> _loadSummaryFromApi() async {
@@ -98,6 +113,8 @@ class ClosingController extends GetxController {
           'fisik': physicalCash.value,
           'status': entry.status,
         });
+        await _syncHistoryFromApi();
+        history.assignAll(await repo.getAll());
       } catch (_) {
         // keep local-only if API unavailable
       }

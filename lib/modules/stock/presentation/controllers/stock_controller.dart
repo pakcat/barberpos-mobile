@@ -1,11 +1,9 @@
 import 'package:get/get.dart';
 
 import '../../../../core/config/app_config.dart';
-import '../../../../core/network/network_service.dart';
 import '../../../cashier/presentation/controllers/cashier_controller.dart';
 import '../../../product/data/repositories/product_repository.dart';
 import '../../../product/presentation/controllers/product_controller.dart';
-import '../../data/datasources/stock_remote_data_source.dart';
 import '../../data/entities/stock_entity.dart';
 import '../../data/repositories/stock_repository.dart';
 import '../models/stock_models.dart';
@@ -14,19 +12,14 @@ class StockController extends GetxController {
   StockController({
     StockRepository? repository,
     ProductRepository? productRepository,
-    StockRemoteDataSource? restRemote,
     AppConfig? config,
-    NetworkService? network,
   })  : repo = repository ?? Get.find<StockRepository>(),
         _productRepo = productRepository ?? Get.find<ProductRepository>(),
-        _config = config ?? Get.find<AppConfig>(),
-        _rest = restRemote ??
-            StockRemoteDataSource((network ?? Get.find<NetworkService>()).dio);
+        _config = config ?? Get.find<AppConfig>();
 
   final StockRepository repo;
   final ProductRepository _productRepo;
   final AppConfig _config;
-  final StockRemoteDataSource _rest;
 
   final RxList<StockItem> products = <StockItem>[].obs;
 
@@ -44,19 +37,6 @@ class StockController extends GetxController {
   }
 
   Future<void> _load() async {
-    if (_config.backend == BackendMode.rest) {
-      try {
-        final data = await _rest.fetchAll();
-        await repo.replaceAll(data);
-        products.assignAll(data.map(_map));
-        if (products.isNotEmpty && selected.value == null) {
-          selected.value = products.first;
-        }
-        await _loadHistory();
-        return;
-      } catch (_) {}
-    }
-
     final data = await repo.getAll();
     products.assignAll(data.map(_map));
     if (products.isNotEmpty && selected.value == null) {
@@ -92,24 +72,36 @@ class StockController extends GetxController {
     final qty = int.tryParse(adjustmentValue.value) ?? 0;
     if (qty < 0) return;
     final type = adjustmentType.value!;
-    final productId = int.tryParse(item.id) ?? item.id.hashCode;
+    final stockId = int.tryParse(item.id);
+    if (stockId == null) return;
+    final productId = stockId;
     int newStock = item.stock;
     int delta = 0;
 
-    if (_config.backend == BackendMode.rest) {
+    if (_config.backend == BackendMode.rest && repo.restRemote != null) {
       try {
-        final adjusted = await _rest.adjust(
-          stockId: int.tryParse(item.id) ?? item.id.hashCode,
+        switch (type) {
+          case StockAdjustmentType.add:
+            delta = qty;
+            break;
+          case StockAdjustmentType.reduce:
+            delta = -qty;
+            break;
+          case StockAdjustmentType.recount:
+            delta = qty - item.stock;
+            break;
+        }
+        final adjusted = await repo.adjustRemote(
+          stockId: stockId,
           change: qty,
           type: type.name,
           note: note.value.isEmpty ? null : note.value,
           productId: productId,
         );
-        newStock = adjusted.stock;
-        delta = qty;
-        final latest = await _rest.fetchAll();
-        await repo.replaceAll(latest);
-        products.assignAll(latest.map(_map));
+        if (adjusted != null) {
+          newStock = adjusted.stock;
+        }
+        products.assignAll((await repo.getAll()).map(_map));
       } catch (_) {
         // fallback to local adjust below
       }
@@ -177,24 +169,26 @@ class StockController extends GetxController {
     histories.clear();
     final current = selected.value;
     if (current == null) return;
-    final productId = int.tryParse(current.id) ?? current.id.hashCode;
+    final stockId = int.tryParse(current.id);
+    if (stockId == null) return;
 
-    if (_config.backend == BackendMode.rest) {
-      try {
-        final remote = await _rest.history(productId, limit: 50);
-        histories.assignAll(
-          remote.map(
-            (h) => StockHistory(
-              date: h['createdAt']?.toString() ?? '',
-              status: _statusLabel(_typeFromString(h['type']?.toString() ?? ''), _toInt(h['change'])),
-              quantity: _toInt(h['change']),
-              remaining: _toInt(h['remaining']),
-              type: _typeFromString(h['type']?.toString() ?? ''),
+    if (_config.backend == BackendMode.rest && repo.restRemote != null) {
+      final remote = await repo.historyRemote(stockId, limit: 50);
+      histories.assignAll(
+        remote.map(
+          (h) => StockHistory(
+            date: h['createdAt']?.toString() ?? '',
+            status: _statusLabel(
+              _typeFromString(h['type']?.toString() ?? ''),
+              _toInt(h['change']),
             ),
+            quantity: _toInt(h['change']),
+            remaining: _toInt(h['remaining']),
+            type: _typeFromString(h['type']?.toString() ?? ''),
           ),
-        );
-        return;
-      } catch (_) {}
+        ),
+      );
+      return;
     }
   }
 

@@ -1,5 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../transactions/data/entities/transaction_entity.dart';
 import '../../../transactions/data/repositories/transaction_repository.dart';
@@ -28,6 +34,7 @@ class ReportsController extends GetxController {
   int get net => totalRevenue - totalExpense;
 
   final loading = false.obs;
+  final exporting = false.obs;
   final filterRange = 'Bulan ini'.obs;
   final filterStaff = ''.obs;
   final filterCategory = ''.obs;
@@ -127,6 +134,39 @@ class ReportsController extends GetxController {
       );
     }
     return buffer.toString();
+  }
+
+  Future<void> downloadExport({required String format}) async {
+    final range = _resolveRange();
+    exporting.value = true;
+    try {
+      final remoteBytes = await repo.downloadExport(
+        format: format,
+        start: range.start,
+        end: range.end,
+      );
+
+      final useXlsx = format.toLowerCase() == 'xlsx' || format.toLowerCase() == 'excel';
+      final bytes = remoteBytes ?? Uint8List.fromList(utf8.encode(await exportCsv()));
+
+      final ext = remoteBytes != null && useXlsx ? 'xlsx' : 'csv';
+      final filename =
+          'finance_${range.start.year}${range.start.month.toString().padLeft(2, '0')}${range.start.day.toString().padLeft(2, '0')}_'
+          '${range.end.year}${range.end.month.toString().padLeft(2, '0')}${range.end.day.toString().padLeft(2, '0')}.$ext';
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}${Platform.pathSeparator}$filename');
+      await file.writeAsBytes(bytes, flush: true);
+
+      if (useXlsx && remoteBytes == null) {
+        Get.snackbar('Info', 'Export Excel butuh backend REST, dikirim sebagai CSV.');
+      }
+      await Share.shareXFiles([XFile(file.path)], text: 'Export laporan keuangan');
+    } catch (e) {
+      Get.snackbar('Gagal export', e.toString());
+    } finally {
+      exporting.value = false;
+    }
   }
 
   FinanceEntry _map(FinanceEntryEntity e) => FinanceEntry(

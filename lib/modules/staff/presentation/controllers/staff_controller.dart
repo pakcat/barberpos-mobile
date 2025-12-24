@@ -1,11 +1,7 @@
 import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
 
-import '../../../../core/config/app_config.dart';
-import '../../../../core/network/network_service.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../transactions/data/repositories/transaction_repository.dart';
-import '../../data/datasources/staff_remote_data_source.dart';
 import '../../data/entities/employee_entity.dart';
 import '../../data/repositories/staff_repository.dart';
 import '../models/employee_model.dart';
@@ -13,24 +9,15 @@ import '../models/employee_model.dart';
 class StaffController extends GetxController {
   StaffController({
     StaffRepository? repository,
-    StaffRemoteDataSource? restRemote,
-    AppConfig? config,
-    NetworkService? network,
   }) : repo = repository ?? Get.find<StaffRepository>(),
        txRepo = Get.find<TransactionRepository>(),
-       logs = Get.find<ActivityLogService>(),
-       _config = config ?? Get.find<AppConfig>(),
-       _rest =
-           restRemote ??
-           StaffRemoteDataSource((network ?? Get.find<NetworkService>()).dio);
+       logs = Get.find<ActivityLogService>();
 
   final StaffRepository repo;
   final TransactionRepository txRepo;
   final employees = <Employee>[].obs;
   final loading = false.obs;
   final ActivityLogService logs;
-  final AppConfig _config;
-  final StaffRemoteDataSource _rest;
 
   @override
   void onInit() {
@@ -38,19 +25,8 @@ class StaffController extends GetxController {
     _load();
   }
 
-  bool get _useRest => _config.backend == BackendMode.rest;
-
   Future<void> _load() async {
     loading.value = true;
-    if (_useRest) {
-      try {
-        final remote = await _rest.fetchAll();
-        await repo.replaceAll(remote);
-        employees.assignAll(remote.map(_map));
-        loading.value = false;
-        return;
-      } catch (_) {}
-    }
     final data = await repo.getAll();
     employees.assignAll(data.map(_map));
     loading.value = false;
@@ -58,19 +34,29 @@ class StaffController extends GetxController {
 
   Employee? getById(String id) => employees.firstWhereOrNull((e) => e.id == id);
 
-  void upsert(Employee employee) {
-    final index = employees.indexWhere((e) => e.id == employee.id);
+  Future<void> upsert(Employee employee) async {
+    final originalId = employee.id;
+    final index = employees.indexWhere((e) => e.id == originalId);
     if (index >= 0) {
       employees[index] = employee;
     } else {
       employees.add(employee);
     }
     employees.refresh();
+
     final entity = _toEntity(employee);
-    if (_useRest) {
-      _rest.upsert(entity, pin: employee.pin);
+    final saved = await repo.upsert(entity, pin: employee.pin);
+    final mapped = _map(saved);
+
+    final idx = employees.indexWhere((e) => e.id == originalId);
+    if (idx != -1) {
+      employees[idx] = mapped;
+    } else {
+      employees.removeWhere((e) => e.id == mapped.id);
+      employees.add(mapped);
     }
-    repo.upsert(entity);
+    employees.refresh();
+
     logs.add(
       title: index >= 0 ? 'Ubah karyawan' : 'Tambah karyawan',
       message: '${employee.name} (${employee.role}) disimpan',
@@ -121,11 +107,9 @@ class StaffController extends GetxController {
   void delete(Employee employee) {
     employees.removeWhere((e) => e.id == employee.id);
     employees.refresh();
-    final deleteId = int.tryParse(employee.id) ?? employee.id.hashCode;
+    final deleteId = int.tryParse(employee.id);
+    if (deleteId == null) return;
     repo.delete(deleteId);
-    if (_useRest) {
-      _rest.delete(deleteId);
-    }
     Get.back();
     Get.snackbar('Berhasil', 'Karyawan dihapus');
     logs.add(
@@ -156,7 +140,7 @@ class StaffController extends GetxController {
       ..joinDate = e.joinDate
       ..commission = e.commission
       ..active = e.status == EmployeeStatus.active;
-    entity.id = int.tryParse(e.id) ?? Isar.autoIncrement;
+    entity.id = int.tryParse(e.id) ?? 0;
     return entity;
   }
 

@@ -24,14 +24,14 @@ class MembershipRemoteDataSource {
   Future<List<MembershipTopupEntity>> fetchTopups() async {
     final res = await _dio.get<List<dynamic>>('/membership/topups');
     final data = res.data ?? const [];
-    return data.map((raw) {
+    return data.whereType<Map>().map((raw) {
+      final json = Map<String, dynamic>.from(raw);
       final e = MembershipTopupEntity()
-        ..amount = int.tryParse(raw['amount']?.toString() ?? '') ?? 0
-        ..manager = raw['manager']?.toString() ?? ''
-        ..note = raw['note']?.toString() ?? ''
-        ..date =
-            DateTime.tryParse(raw['date']?.toString() ?? '') ?? DateTime.now();
-      e.id = int.tryParse(raw['id']?.toString() ?? '') ?? 0;
+        ..amount = int.tryParse(json['amount']?.toString() ?? '') ?? 0
+        ..manager = json['manager']?.toString() ?? ''
+        ..note = json['note']?.toString() ?? ''
+        ..date = DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now();
+      e.id = int.tryParse(json['id']?.toString() ?? '') ?? 0;
       return e;
     }).toList();
   }

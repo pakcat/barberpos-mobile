@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../entities/finance_entry_entity.dart';
 
@@ -42,6 +43,26 @@ class FinanceRemoteDataSource {
     );
     final data = res.data ?? <String, dynamic>{};
     return _toEntity(data);
+  }
+
+  Future<Uint8List> downloadExport({
+    required String format,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final params = <String, dynamic>{'format': format};
+    if (startDate != null) {
+      params['startDate'] = _formatDate(startDate);
+    }
+    if (endDate != null) {
+      params['endDate'] = _formatDate(endDate);
+    }
+    final res = await _dio.get<List<int>>(
+      '/finance/export',
+      queryParameters: params,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(res.data ?? const <int>[]);
   }
 
   FinanceEntryEntity _toEntity(dynamic raw) {

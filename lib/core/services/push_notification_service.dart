@@ -64,6 +64,11 @@ class PushNotificationService extends GetxService {
   void _handleForegroundMessage(RemoteMessage message) {
     final title = message.notification?.title ?? 'Notifikasi';
     final body = message.notification?.body ?? '';
-    _notifications.add(title: title, message: body, type: NotificationType.info);
+    _notifications.add(
+      title: title,
+      message: body,
+      type: NotificationType.info,
+      syncRemote: false,
+    );
   }
 }

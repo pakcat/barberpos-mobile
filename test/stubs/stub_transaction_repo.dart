@@ -29,6 +29,11 @@ class StubTransactionRepository implements TransactionRepository {
   }
 
   @override
+  Future<void> deleteByCode(String code) async {
+    _txs.removeWhere((e) => e.code == code);
+  }
+
+  @override
   Future<List<TransactionEntity>> getAll() async => _txs;
 
   @override

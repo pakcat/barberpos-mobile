@@ -18,8 +18,8 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final dash = Get.put(DashboardController(), permanent: true);
-    final tx = Get.put(TransactionController(), permanent: true);
+    final dash = Get.find<DashboardController>();
+    final tx = Get.find<TransactionController>();
     return LayoutBuilder(
       builder: (context, constraints) {
         final isTablet = constraints.maxWidth >= AppDimens.tabletBreakpoint;

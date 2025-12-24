@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/network/network_service.dart';
@@ -79,10 +78,7 @@ class MembershipController extends GetxController {
         );
         final data = await _rest.fetchTopups();
         topups.assignAll(data.map(_map));
-        for (final t in data) {
-          await repo.addTopup(t);
-        }
-        await repo.setUsedQuota(usedQuota.value);
+        await repo.replaceTopups(data);
         return;
       } catch (_) {}
     }
@@ -113,11 +109,6 @@ class MembershipController extends GetxController {
     );
     final entity = _toEntity(topups.first);
     repo.addTopup(entity);
-    if (_useRest) {
-      try {
-        _rest.addTopup(entity);
-      } catch (_) {}
-    }
     amountController.clear();
     noteController.clear();
   }
@@ -125,11 +116,6 @@ class MembershipController extends GetxController {
   Future<void> updateUsage(int value) async {
     usedQuota.value = value;
     await repo.setUsedQuota(value);
-    if (_useRest) {
-      try {
-        await _rest.setUsedQuota(value);
-      } catch (_) {}
-    }
   }
 
   void _applyState({
@@ -204,7 +190,6 @@ class MembershipController extends GetxController {
       ..manager = item.manager
       ..note = item.note
       ..date = item.date;
-    entity.id = Isar.autoIncrement;
     return entity;
   }
 }

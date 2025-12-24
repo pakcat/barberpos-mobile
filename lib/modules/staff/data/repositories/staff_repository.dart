@@ -20,14 +20,38 @@ class StaffRepository {
     return _isar.employeeEntitys.where().findAll();
   }
 
-  Future<Id> upsert(EmployeeEntity employee) async {
-    if (remote != null) {
+  Future<EmployeeEntity> upsert(EmployeeEntity employee, {String? pin}) async {
+    final remoteSource = remote;
+
+    if (remoteSource != null && employee.id == 0) {
       try {
-        final saved = await remote!.upsert(employee);
-        employee.id = saved.id;
-      } catch (_) {}
+        final saved = await remoteSource.upsert(employee, pin: pin);
+        await _isar.writeTxn(() => _isar.employeeEntitys.put(saved));
+        return saved;
+      } catch (_) {
+        // fall back to local
+      }
     }
-    return _isar.writeTxn(() => _isar.employeeEntitys.put(employee));
+
+    final persistedId = await _isar.writeTxn(() => _isar.employeeEntitys.put(employee));
+    employee.id = persistedId;
+
+    if (remoteSource == null) return employee;
+
+    try {
+      final saved = await remoteSource.upsert(employee, pin: pin);
+      if (saved.id != 0 && saved.id != employee.id) {
+        await _isar.writeTxn(() async {
+          await _isar.employeeEntitys.delete(employee.id);
+          await _isar.employeeEntitys.put(saved);
+        });
+        return saved;
+      }
+      await _isar.writeTxn(() => _isar.employeeEntitys.put(saved));
+      return saved;
+    } catch (_) {
+      return employee;
+    }
   }
 
   Future<void> replaceAll(Iterable<EmployeeEntity> items) async {

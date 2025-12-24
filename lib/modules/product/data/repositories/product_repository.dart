@@ -24,8 +24,24 @@ class ProductRepository {
 
   Future<ProductEntity?> getById(Id id) => _isar.productEntitys.get(id);
 
-  Future<Id> upsert(ProductEntity product) async =>
-      _isar.writeTxn(() => _isar.productEntitys.put(product));
+  Future<Id> upsert(ProductEntity product) async {
+    final originalId = product.id;
+    var toSave = product;
+    if (restRemote != null) {
+      try {
+        toSave = await restRemote!.upsert(product);
+      } catch (_) {
+        // keep local-only if API unavailable
+      }
+    }
+
+    return _isar.writeTxn(() async {
+      if (toSave.id != originalId) {
+        await _isar.productEntitys.delete(originalId);
+      }
+      return _isar.productEntitys.put(toSave);
+    });
+  }
 
   Future<void> replaceAll(Iterable<ProductEntity> items) async {
     await _isar.writeTxn(() async {
@@ -34,5 +50,14 @@ class ProductRepository {
     });
   }
 
-  Future<void> delete(Id id) async => _isar.writeTxn(() => _isar.productEntitys.delete(id));
+  Future<void> delete(Id id) async {
+    await _isar.writeTxn(() => _isar.productEntitys.delete(id));
+    if (restRemote != null) {
+      try {
+        await restRemote!.delete(id);
+      } catch (_) {
+        // keep local-only if API unavailable
+      }
+    }
+  }
 }

@@ -24,7 +24,7 @@ class CategoryFormView extends GetView<ManagementController> {
       final name = nameController.text.trim();
       if (name.isEmpty) return;
       final item = CategoryItem(
-        id: id ?? DateTime.now().toIso8601String(),
+        id: id ?? '0',
         name: name,
       );
       controller.upsertCategory(item);

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/config/app_config.dart';
-import '../../../../core/network/network_service.dart';
-import '../../data/datasources/transaction_remote_data_source.dart';
 import '../../data/entities/transaction_entity.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../models/mappers.dart';
@@ -12,23 +10,18 @@ import '../models/transaction_models.dart';
 class TransactionController extends GetxController {
   TransactionController({
     TransactionRepository? repository,
-    TransactionRemoteDataSource? remote,
     AppConfig? config,
-    NetworkService? network,
   })  : repo = repository ?? Get.find<TransactionRepository>(),
-        _config = config ?? Get.find<AppConfig>(),
-        _remote = remote ??
-            ((config ?? Get.find<AppConfig>()).backend == BackendMode.rest
-                ? TransactionRemoteDataSource((network ?? Get.find<NetworkService>()).dio)
-                : null);
+        _config = config ?? Get.find<AppConfig>();
 
   final TransactionRepository repo;
   final AppConfig _config;
-  final TransactionRemoteDataSource? _remote;
 
   final RxList<TransactionItem> transactions = <TransactionItem>[].obs;
   final loading = false.obs;
   final Rxn<DateTimeRange> filterRange = Rxn<DateTimeRange>();
+
+  bool get _isRest => _config.backend == BackendMode.rest;
 
   @override
   void onInit() {
@@ -43,6 +36,10 @@ class TransactionController extends GetxController {
   }
 
   Future<void> upsertTransaction(TransactionItem item) async {
+    if (_isRest) {
+      Get.snackbar('Info', 'Update transaksi belum tersedia untuk mode REST.');
+      return;
+    }
     final index = transactions.indexWhere((t) => t.id == item.id);
     if (index != -1) {
       transactions[index] = item;
@@ -54,11 +51,12 @@ class TransactionController extends GetxController {
   }
 
   Future<void> remove(String id) async {
-    final tx = transactions.firstWhereOrNull((t) => t.id == id);
-    transactions.removeWhere((t) => t.id == id);
-    if (tx != null) {
-      await repo.delete(int.tryParse(tx.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? tx.hashCode);
+    if (_isRest) {
+      Get.snackbar('Info', 'Refund/hapus transaksi belum tersedia untuk mode REST.');
+      return;
     }
+    transactions.removeWhere((t) => t.id == id);
+    await repo.deleteByCode(id);
   }
 
   Future<void> _load({DateTimeRange? range}) async {
@@ -73,18 +71,6 @@ class TransactionController extends GetxController {
       }
       loading.value = false;
       return;
-    }
-    final remote = _remote;
-    if (_config.backend == BackendMode.rest && remote != null) {
-      try {
-        final data = await remote.fetchAll();
-        await repo.replaceAll(data);
-        transactions.assignAll(data.map(_map));
-        loading.value = false;
-        return;
-      } catch (_) {
-        // fallback to local
-      }
     }
     final data = await repo.getAll();
     transactions.assignAll(data.map(_map));
@@ -118,6 +104,10 @@ class TransactionController extends GetxController {
   );
 
   Future<void> save(TransactionItem item) async {
+    if (_isRest) {
+      Get.snackbar('Info', 'Edit transaksi belum tersedia untuk mode REST.');
+      return;
+    }
     final entity = toTransactionEntity(item);
     await repo.upsert(entity);
   }

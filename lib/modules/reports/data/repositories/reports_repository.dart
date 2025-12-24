@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import 'package:flutter/foundation.dart';
 
 import '../datasources/finance_remote_data_source.dart';
 import '../entities/finance_entry_entity.dart';
@@ -34,16 +35,38 @@ class ReportsRepository {
         .findAll();
   }
 
-  Future<Id> upsert(FinanceEntryEntity entry) {
-    return _isar.writeTxn(() async {
-      final id = await _isar.financeEntryEntitys.put(entry);
-      if (restRemote != null) {
-        try {
-          await restRemote!.add(entry);
-        } catch (_) {}
+  Future<Id> upsert(FinanceEntryEntity entry) async {
+    final localId = entry.id;
+    final id = await _isar.writeTxn(() => _isar.financeEntryEntitys.put(entry));
+
+    final remote = restRemote;
+    if (remote == null) return id;
+
+    try {
+      final saved = await remote.add(entry);
+      if (saved.id != 0 && saved.id != localId) {
+        await _isar.writeTxn(() async {
+          await _isar.financeEntryEntitys.delete(localId);
+          await _isar.financeEntryEntitys.put(saved);
+        });
       }
-      return id;
-    });
+    } catch (_) {}
+
+    return id;
+  }
+
+  Future<Uint8List?> downloadExport({
+    required String format,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final remote = restRemote;
+    if (remote == null) return null;
+    try {
+      return await remote.downloadExport(format: format, startDate: start, endDate: end);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> replaceAll(Iterable<FinanceEntryEntity> items) async {

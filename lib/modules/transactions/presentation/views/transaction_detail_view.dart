@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/values/app_colors.dart';
 import '../../../../core/values/app_dimens.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -19,6 +20,8 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
   final controller = Get.find<TransactionController>();
   bool showCustomer = false;
   final TextEditingController amountController = TextEditingController();
+
+  bool get _isRest => Get.find<AppConfig>().backend == BackendMode.rest;
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +118,7 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
             children: [
               Expanded(
                 child: TextButton(
-                  onPressed: () => _confirmRefund(tx.id),
+                  onPressed: _isRest ? () => _notSupported() : () => _confirmRefund(tx.id),
                   child: const Text(
                     'Refund & Hapus',
                     style: TextStyle(color: AppColors.red500),
@@ -125,7 +128,7 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
               const SizedBox(width: AppDimens.spacingSm),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => _markPaid(tx),
+                  onPressed: _isRest ? () => _notSupported() : () => _markPaid(tx),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.orange500),
                     foregroundColor: AppColors.orange500,
@@ -218,6 +221,10 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
       ),
     );
     Get.snackbar('Status', 'Transaksi ditandai lunas');
+  }
+
+  void _notSupported() {
+    Get.snackbar('Info', 'Aksi ini belum tersedia untuk mode REST.');
   }
 }
 

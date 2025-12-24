@@ -92,21 +92,49 @@ class ProductController extends GetxController {
   }
 
   void upsert(ProductItem item) async {
-    final index = products.indexWhere((p) => p.id == item.id);
-    if (index >= 0) {
-      products[index] = item;
+    final existingIndex = products.indexWhere((p) => p.id == item.id);
+    if (existingIndex >= 0) {
+      products[existingIndex] = item;
     } else {
       products.add(item);
     }
-    final entity = _toEntity(item);
-    await repo.upsert(entity);
+
+    final localEntity = _toEntity(item);
+    final originalId = localEntity.id;
+    final savedId = await repo.upsert(localEntity);
     if (Get.isRegistered<CashierController>()) {
       await Get.find<CashierController>().refreshAll();
     }
-    final idInt = int.tryParse(item.id) ?? item.id.hashCode;
+
+    // If the backend assigned a new numeric ID, update the in-memory list entry.
+    if (_config.backend == BackendMode.rest && savedId > 0) {
+      final previousId = item.id;
+      final newId = savedId.toString();
+      if (previousId != newId) {
+        final idx = products.indexWhere((p) => p.id == previousId);
+        if (idx >= 0) {
+          final current = products[idx];
+          products[idx] = ProductItem(
+            id: newId,
+            name: current.name,
+            category: current.category,
+            price: current.price,
+            image: current.image,
+            trackStock: current.trackStock,
+            stock: current.stock,
+            minStock: current.minStock,
+          );
+        }
+      }
+    }
+
+    final idInt = savedId > 0 ? savedId : originalId;
     if (item.trackStock) {
-      final stockEntity = _toStockEntity(entity);
-      await _stockRepo.upsert(stockEntity);
+      final persisted = await repo.getById(idInt);
+      if (persisted != null) {
+        final stockEntity = _toStockEntity(persisted);
+        await _stockRepo.upsert(stockEntity);
+      }
     } else {
       try {
         await _stockRepo.delete(idInt);
@@ -117,7 +145,7 @@ class ProductController extends GetxController {
     }
     await _loadCategories();
     logs.add(
-      title: index >= 0 ? 'Ubah produk' : 'Tambah produk',
+      title: existingIndex >= 0 ? 'Ubah produk' : 'Tambah produk',
       message: '${item.name} disimpan dengan harga Rp${item.price}',
       actor: 'Manager',
     );
