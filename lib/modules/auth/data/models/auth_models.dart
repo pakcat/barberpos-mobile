@@ -27,6 +27,7 @@ class UserDto {
     required this.name,
     required this.email,
     required this.role,
+    this.permissions = const <String>[],
     this.phone = '',
     this.address = '',
     this.region = '',
@@ -37,17 +38,21 @@ class UserDto {
   final String name;
   final String email;
   final String role;
+  final List<String> permissions;
   final String phone;
   final String address;
   final String region;
   final bool isGoogle;
 
   factory UserDto.fromJson(Map<String, dynamic> json) {
+    final permsRaw = json['permissions'];
+    final perms = permsRaw is List ? permsRaw.map((e) => e.toString()).toList() : <String>[];
     return UserDto(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       role: json['role']?.toString() ?? 'manager',
+      permissions: perms,
       phone: json['phone']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
       region: json['region']?.toString() ?? '',

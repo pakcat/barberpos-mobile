@@ -6,6 +6,7 @@ import '../values/app_colors.dart';
 import '../values/app_dimens.dart';
 import '../values/app_strings.dart';
 import '../../routes/app_routes.dart';
+import '../../modules/staff/presentation/models/employee_model.dart';
 
 class AppSideDrawer extends StatelessWidget {
   const AppSideDrawer({super.key});
@@ -62,7 +63,7 @@ class AppSideDrawer extends StatelessWidget {
                           label: 'Dashboard',
                           route: Routes.home,
                         ),
-                      if (isManager || isStaff)
+                      if (isManager || (isStaff && auth.staffCan(EmployeeModuleKeys.cashier)))
                         const _DrawerItem(
                           icon: Icons.storefront_rounded,
                           label: 'Kasir',
@@ -74,13 +75,13 @@ class AppSideDrawer extends StatelessWidget {
                           label: 'Absensi',
                           route: Routes.attendance,
                         ),
-                      if (isManager || isStaff)
+                      if (isManager || (isStaff && auth.staffCan(EmployeeModuleKeys.transactions)))
                         const _DrawerItem(
                           icon: Icons.receipt_long_rounded,
                           label: 'Transaksi',
                           route: Routes.transactions,
                         ),
-                      if (isManager || isStaff)
+                      if (isManager || (isStaff && auth.staffCan(EmployeeModuleKeys.customers)))
                         const _DrawerItem(
                           icon: Icons.groups_rounded,
                           label: 'Pelanggan',
@@ -122,11 +123,12 @@ class AppSideDrawer extends StatelessWidget {
                           label: 'Karyawan',
                           route: Routes.employees,
                         ),
-                      const _DrawerItem(
-                        icon: Icons.lock_clock_rounded,
-                        label: 'Tutup Buku',
-                        route: Routes.closing,
-                      ),
+                      if (isManager || (isStaff && auth.staffCan(EmployeeModuleKeys.closing)))
+                        const _DrawerItem(
+                          icon: Icons.lock_clock_rounded,
+                          label: 'Tutup Buku',
+                          route: Routes.closing,
+                        ),
                       if (isManager)
                         const _DrawerItem(
                           icon: Icons.history_rounded,
@@ -134,6 +136,12 @@ class AppSideDrawer extends StatelessWidget {
                           route: Routes.activityLogs,
                         ),
                       if (isManager)
+                        const _DrawerItem(
+                          icon: Icons.cloud_sync_rounded,
+                          label: 'Sinkronisasi',
+                          route: Routes.sync,
+                        ),
+                      if (isStaff)
                         const _DrawerItem(
                           icon: Icons.cloud_sync_rounded,
                           label: 'Sinkronisasi',

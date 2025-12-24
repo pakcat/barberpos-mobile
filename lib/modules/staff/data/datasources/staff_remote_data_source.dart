@@ -12,9 +12,12 @@ class StaffRemoteDataSource {
     final data = res.data ?? const [];
     return data.whereType<Map>().map((raw) {
       final json = Map<String, dynamic>.from(raw);
+      final modulesRaw = json['modules'];
+      final modules = modulesRaw is List ? modulesRaw.map((e) => e.toString()).toList() : <String>[];
       final e = EmployeeEntity()
         ..name = json['name']?.toString() ?? ''
-        ..role = json['role']?.toString() ?? ''
+        ..role = json['role']?.toString() ?? 'Staff'
+        ..modules = modules
         ..phone = json['phone']?.toString() ?? ''
         ..email = json['email']?.toString() ?? ''
         ..commission = double.tryParse(json['commission']?.toString() ?? '') ?? 0
@@ -34,6 +37,7 @@ class StaffRemoteDataSource {
         'id': _nullableId(employee.id),
         'name': employee.name,
         'role': employee.role,
+        'modules': employee.modules,
         'phone': employee.phone,
         'email': employee.email,
         'joinDate': employee.joinDate.toIso8601String().split('T').first,
@@ -43,9 +47,12 @@ class StaffRemoteDataSource {
       },
     );
     final data = res.data ?? <String, dynamic>{};
+    final modulesRaw = data['modules'];
+    final modules = modulesRaw is List ? modulesRaw.map((e) => e.toString()).toList() : employee.modules;
     final e = EmployeeEntity()
       ..name = data['name']?.toString() ?? employee.name
       ..role = data['role']?.toString() ?? employee.role
+      ..modules = modules
       ..phone = data['phone']?.toString() ?? employee.phone
       ..email = data['email']?.toString() ?? employee.email
       ..commission =

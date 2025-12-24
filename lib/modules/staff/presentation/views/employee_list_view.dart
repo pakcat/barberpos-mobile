@@ -184,7 +184,7 @@ class _EmployeeTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.spacingXs),
-          Text('${item.role} | ${item.phone}', style: const TextStyle(color: Colors.white70)),
+          Text('Karyawan | ${item.phone}', style: const TextStyle(color: Colors.white70)),
           Text(item.email, style: const TextStyle(color: Colors.white70)),
           const SizedBox(height: AppDimens.spacingSm),
           Row(

@@ -4,15 +4,19 @@ import 'package:get/get.dart';
 
 import '../../../../core/services/sync_service.dart';
 import '../../../../core/services/activity_log_service.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../core/database/entities/activity_log_entity.dart';
 import '../../../cashier/data/repositories/order_outbox_repository.dart';
 import '../../../product/data/repositories/product_outbox_repository.dart';
 import '../../../product/data/repositories/product_image_outbox_repository.dart';
 import '../../../settings/data/repositories/qris_outbox_repository.dart';
 import '../../../stock/data/repositories/stock_repository.dart';
+import '../../../staff/data/repositories/attendance_outbox_repository.dart';
+import '../../../staff/data/entities/attendance_outbox_entity.dart';
 
 enum SyncItemKind {
   order,
+  attendance,
   product,
   productImage,
   qris,
@@ -48,14 +52,18 @@ class SyncController extends GetxController {
   SyncController({
     SyncService? syncService,
     ActivityLogService? logs,
+    AuthService? auth,
     OrderOutboxRepository? orders,
+    AttendanceOutboxRepository? attendance,
     ProductOutboxRepository? products,
     ProductImageOutboxRepository? productImages,
     QrisOutboxRepository? qris,
     StockRepository? stocks,
   }) : _sync = syncService ?? Get.find<SyncService>(),
        _logs = logs ?? Get.find<ActivityLogService>(),
+       _auth = auth ?? Get.find<AuthService>(),
        _orders = orders ?? Get.find<OrderOutboxRepository>(),
+       _attendance = attendance ?? Get.find<AttendanceOutboxRepository>(),
        _products = products ?? Get.find<ProductOutboxRepository>(),
        _productImages = productImages ?? Get.find<ProductImageOutboxRepository>(),
        _qris = qris ?? Get.find<QrisOutboxRepository>(),
@@ -63,7 +71,9 @@ class SyncController extends GetxController {
 
   final SyncService _sync;
   final ActivityLogService _logs;
+  final AuthService _auth;
   final OrderOutboxRepository _orders;
+  final AttendanceOutboxRepository _attendance;
   final ProductOutboxRepository _products;
   final ProductImageOutboxRepository _productImages;
   final QrisOutboxRepository _qris;
@@ -112,68 +122,88 @@ class SyncController extends GetxController {
         );
       }
 
-      final productOps = await _products.allUnsynced();
-      for (final p in productOps) {
+      final attendance = await _attendance.allUnsynced();
+      for (final a in attendance) {
         mainNext.add(
           SyncQueueItem(
-            kind: SyncItemKind.product,
-            id: p.id,
-            title: 'Produk ${p.action.name}',
-            subtitle: 'LocalId: ${p.localProductId}',
-            createdAt: p.createdAt,
-            attempts: p.attempts,
-            nextAttemptAt: p.nextAttemptAt,
-            lastError: p.lastError,
+            kind: SyncItemKind.attendance,
+            id: a.id,
+            title: 'Absensi ${a.action == AttendanceOutboxActionEntity.checkIn ? 'check-in' : 'check-out'}',
+            subtitle:
+                a.employeeName.isNotEmpty ? a.employeeName : null,
+            createdAt: a.createdAt,
+            attempts: a.attempts,
+            nextAttemptAt: a.nextAttemptAt,
+            lastError: a.lastError,
           ),
         );
       }
 
-      final productImages = await _productImages.allUnsynced();
-      for (final img in productImages) {
-        mainNext.add(
-          SyncQueueItem(
-            kind: SyncItemKind.productImage,
-            id: img.id,
-            title: 'Foto produk',
-            subtitle: 'LocalId: ${img.localProductId}',
-            createdAt: img.createdAt,
-            attempts: img.attempts,
-            nextAttemptAt: img.nextAttemptAt,
-            lastError: img.lastError,
-          ),
-        );
-      }
+      final isManager = _auth.isManager;
+      if (isManager) {
+        final productOps = await _products.allUnsynced();
+        for (final p in productOps) {
+          mainNext.add(
+            SyncQueueItem(
+              kind: SyncItemKind.product,
+              id: p.id,
+              title: 'Produk ${p.action.name}',
+              subtitle: 'LocalId: ${p.localProductId}',
+              createdAt: p.createdAt,
+              attempts: p.attempts,
+              nextAttemptAt: p.nextAttemptAt,
+              lastError: p.lastError,
+            ),
+          );
+        }
 
-      final qris = await _qris.allUnsynced();
-      for (final q in qris) {
-        mainNext.add(
-          SyncQueueItem(
-            kind: SyncItemKind.qris,
-            id: q.id,
-            title: 'QRIS ${q.action.name}',
-            subtitle: q.filename.isNotEmpty ? q.filename : null,
-            createdAt: q.createdAt,
-            attempts: q.attempts,
-            nextAttemptAt: q.nextAttemptAt,
-            lastError: q.lastError,
-          ),
-        );
-      }
+        final productImages = await _productImages.allUnsynced();
+        for (final img in productImages) {
+          mainNext.add(
+            SyncQueueItem(
+              kind: SyncItemKind.productImage,
+              id: img.id,
+              title: 'Foto produk',
+              subtitle: 'LocalId: ${img.localProductId}',
+              createdAt: img.createdAt,
+              attempts: img.attempts,
+              nextAttemptAt: img.nextAttemptAt,
+              lastError: img.lastError,
+            ),
+          );
+        }
 
-      final stockAdj = await _stocks.getAllUnsyncedAdjustments();
-      for (final s in stockAdj) {
-        mainNext.add(
-          SyncQueueItem(
-            kind: SyncItemKind.stockAdjustment,
-            id: s.id,
-            title: 'Stok ${s.type} (${s.change})',
-            subtitle: 'StockId: ${s.stockId}',
-            createdAt: s.createdAt,
-            attempts: s.attempts,
-            nextAttemptAt: s.nextAttemptAt,
-            lastError: s.lastError,
-          ),
-        );
+        final qris = await _qris.allUnsynced();
+        for (final q in qris) {
+          mainNext.add(
+            SyncQueueItem(
+              kind: SyncItemKind.qris,
+              id: q.id,
+              title: 'QRIS ${q.action.name}',
+              subtitle: q.filename.isNotEmpty ? q.filename : null,
+              createdAt: q.createdAt,
+              attempts: q.attempts,
+              nextAttemptAt: q.nextAttemptAt,
+              lastError: q.lastError,
+            ),
+          );
+        }
+
+        final stockAdj = await _stocks.getAllUnsyncedAdjustments();
+        for (final s in stockAdj) {
+          mainNext.add(
+            SyncQueueItem(
+              kind: SyncItemKind.stockAdjustment,
+              id: s.id,
+              title: 'Stok ${s.type} (${s.change})',
+              subtitle: 'StockId: ${s.stockId}',
+              createdAt: s.createdAt,
+              attempts: s.attempts,
+              nextAttemptAt: s.nextAttemptAt,
+              lastError: s.lastError,
+            ),
+          );
+        }
       }
 
       final logs = await _logs.allUnsyncedEntities();
@@ -217,6 +247,9 @@ class SyncController extends GetxController {
       case SyncItemKind.order:
         await _orders.resetRetry(id: item.id);
         break;
+      case SyncItemKind.attendance:
+        await _attendance.resetRetry(id: item.id);
+        break;
       case SyncItemKind.product:
         await _products.resetRetry(id: item.id);
         break;
@@ -241,6 +274,9 @@ class SyncController extends GetxController {
       case SyncItemKind.order:
         // Delete specific row by ID.
         await _orders.deleteById(item.id);
+        break;
+      case SyncItemKind.attendance:
+        await _attendance.deleteById(item.id);
         break;
       case SyncItemKind.product:
         await _products.deleteById(item.id);

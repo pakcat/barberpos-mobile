@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:get/get.dart';
 
 import '../services/activity_log_service.dart';
+import '../services/auth_service.dart';
 import '../../modules/cashier/data/repositories/order_outbox_repository.dart';
 import '../../modules/product/data/repositories/product_outbox_repository.dart';
 import '../../modules/product/data/repositories/product_image_outbox_repository.dart';
 import '../../modules/settings/data/repositories/qris_outbox_repository.dart';
 import '../../modules/stock/data/repositories/stock_repository.dart';
+import '../../modules/staff/data/repositories/attendance_outbox_repository.dart';
 
 class SyncQueueService extends GetxService {
   SyncQueueService({Duration interval = const Duration(seconds: 10)}) : _interval = interval;
@@ -32,12 +34,18 @@ class SyncQueueService extends GetxService {
 
   Future<void> refresh() async {
     try {
+      final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
+      final isManager = auth?.isManager == true;
       final orders = Get.isRegistered<OrderOutboxRepository>() ? Get.find<OrderOutboxRepository>() : null;
-      final products = Get.isRegistered<ProductOutboxRepository>() ? Get.find<ProductOutboxRepository>() : null;
-      final productImages =
-          Get.isRegistered<ProductImageOutboxRepository>() ? Get.find<ProductImageOutboxRepository>() : null;
-      final qris = Get.isRegistered<QrisOutboxRepository>() ? Get.find<QrisOutboxRepository>() : null;
-      final stocks = Get.isRegistered<StockRepository>() ? Get.find<StockRepository>() : null;
+      final products =
+          isManager && Get.isRegistered<ProductOutboxRepository>() ? Get.find<ProductOutboxRepository>() : null;
+      final productImages = isManager && Get.isRegistered<ProductImageOutboxRepository>()
+          ? Get.find<ProductImageOutboxRepository>()
+          : null;
+      final qris = isManager && Get.isRegistered<QrisOutboxRepository>() ? Get.find<QrisOutboxRepository>() : null;
+      final stocks = isManager && Get.isRegistered<StockRepository>() ? Get.find<StockRepository>() : null;
+      final attendance =
+          Get.isRegistered<AttendanceOutboxRepository>() ? Get.find<AttendanceOutboxRepository>() : null;
       final logs = Get.isRegistered<ActivityLogService>() ? Get.find<ActivityLogService>() : null;
 
       var pendingPrimary = 0;
@@ -67,6 +75,11 @@ class SyncQueueService extends GetxService {
       }
       if (stocks != null) {
         final rows = await stocks.getAllUnsyncedAdjustments();
+        pendingPrimary += rows.length;
+        failedPrimary += rows.where((e) => (e.lastError ?? '').trim().isNotEmpty).length;
+      }
+      if (attendance != null) {
+        final rows = await attendance.allUnsynced();
         pendingPrimary += rows.length;
         failedPrimary += rows.where((e) => (e.lastError ?? '').trim().isNotEmpty).length;
       }

@@ -6,7 +6,8 @@ part 'employee_entity.g.dart';
 class EmployeeEntity {
   Id id = Isar.autoIncrement;
   late String name;
-  late String role;
+  String role = 'Staff';
+  List<String> modules = [];
   late String phone;
   late String email;
   late DateTime joinDate;

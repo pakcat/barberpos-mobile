@@ -141,12 +141,12 @@ class _SummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Total pending: $totalPending • Gagal: $totalFailed',
+                  'Total pending: $totalPending → Gagal: $totalFailed',
                   style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Utama: $mainPending • Log aktivitas: $logPending',
+                  'Utama: $mainPending → Log aktivitas: $logPending',
                   style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
               ],

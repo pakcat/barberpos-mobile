@@ -29,9 +29,14 @@ const EmployeeEntitySchema = CollectionSchema(
       name: r'joinDate',
       type: IsarType.dateTime,
     ),
-    r'name': PropertySchema(id: 4, name: r'name', type: IsarType.string),
-    r'phone': PropertySchema(id: 5, name: r'phone', type: IsarType.string),
-    r'role': PropertySchema(id: 6, name: r'role', type: IsarType.string),
+    r'modules': PropertySchema(
+      id: 4,
+      name: r'modules',
+      type: IsarType.stringList,
+    ),
+    r'name': PropertySchema(id: 5, name: r'name', type: IsarType.string),
+    r'phone': PropertySchema(id: 6, name: r'phone', type: IsarType.string),
+    r'role': PropertySchema(id: 7, name: r'role', type: IsarType.string),
   },
 
   estimateSize: _employeeEntityEstimateSize,
@@ -56,6 +61,13 @@ int _employeeEntityEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.email.length * 3;
+  bytesCount += 3 + object.modules.length * 3;
+  {
+    for (var i = 0; i < object.modules.length; i++) {
+      final value = object.modules[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.phone.length * 3;
   bytesCount += 3 + object.role.length * 3;
@@ -72,9 +84,10 @@ void _employeeEntitySerialize(
   writer.writeDouble(offsets[1], object.commission);
   writer.writeString(offsets[2], object.email);
   writer.writeDateTime(offsets[3], object.joinDate);
-  writer.writeString(offsets[4], object.name);
-  writer.writeString(offsets[5], object.phone);
-  writer.writeString(offsets[6], object.role);
+  writer.writeStringList(offsets[4], object.modules);
+  writer.writeString(offsets[5], object.name);
+  writer.writeString(offsets[6], object.phone);
+  writer.writeString(offsets[7], object.role);
 }
 
 EmployeeEntity _employeeEntityDeserialize(
@@ -89,9 +102,10 @@ EmployeeEntity _employeeEntityDeserialize(
   object.email = reader.readString(offsets[2]);
   object.id = id;
   object.joinDate = reader.readDateTime(offsets[3]);
-  object.name = reader.readString(offsets[4]);
-  object.phone = reader.readString(offsets[5]);
-  object.role = reader.readString(offsets[6]);
+  object.modules = reader.readStringList(offsets[4]) ?? [];
+  object.name = reader.readString(offsets[5]);
+  object.phone = reader.readString(offsets[6]);
+  object.role = reader.readString(offsets[7]);
   return object;
 }
 
@@ -111,10 +125,12 @@ P _employeeEntityDeserializeProp<P>(
     case 3:
       return (reader.readDateTime(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -572,6 +588,200 @@ extension EmployeeEntityQueryFilter
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'modules',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'modules',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'modules',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'modules',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'modules',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'modules',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'modules',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'modules',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'modules', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'modules', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'modules', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'modules', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'modules', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'modules', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'modules', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QAfterFilterCondition>
+  modulesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'modules',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
       );
     });
   }
@@ -1229,6 +1439,12 @@ extension EmployeeEntityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<EmployeeEntity, EmployeeEntity, QDistinct> distinctByModules() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'modules');
+    });
+  }
+
   QueryBuilder<EmployeeEntity, EmployeeEntity, QDistinct> distinctByName({
     bool caseSensitive = true,
   }) {
@@ -1283,6 +1499,13 @@ extension EmployeeEntityQueryProperty
   QueryBuilder<EmployeeEntity, DateTime, QQueryOperations> joinDateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'joinDate');
+    });
+  }
+
+  QueryBuilder<EmployeeEntity, List<String>, QQueryOperations>
+  modulesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'modules');
     });
   }
 

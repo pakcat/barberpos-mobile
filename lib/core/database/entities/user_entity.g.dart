@@ -26,10 +26,15 @@ const UserEntitySchema = CollectionSchema(
       name: r'password',
       type: IsarType.string,
     ),
-    r'phone': PropertySchema(id: 5, name: r'phone', type: IsarType.string),
-    r'region': PropertySchema(id: 6, name: r'region', type: IsarType.string),
+    r'permissions': PropertySchema(
+      id: 5,
+      name: r'permissions',
+      type: IsarType.stringList,
+    ),
+    r'phone': PropertySchema(id: 6, name: r'phone', type: IsarType.string),
+    r'region': PropertySchema(id: 7, name: r'region', type: IsarType.string),
     r'role': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'role',
       type: IsarType.byte,
       enumMap: _UserEntityroleEnumValueMap,
@@ -66,6 +71,13 @@ int _userEntityEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.permissions.length * 3;
+  {
+    for (var i = 0; i < object.permissions.length; i++) {
+      final value = object.permissions[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.phone.length * 3;
   bytesCount += 3 + object.region.length * 3;
   return bytesCount;
@@ -82,9 +94,10 @@ void _userEntitySerialize(
   writer.writeBool(offsets[2], object.isGoogle);
   writer.writeString(offsets[3], object.name);
   writer.writeString(offsets[4], object.password);
-  writer.writeString(offsets[5], object.phone);
-  writer.writeString(offsets[6], object.region);
-  writer.writeByte(offsets[7], object.role.index);
+  writer.writeStringList(offsets[5], object.permissions);
+  writer.writeString(offsets[6], object.phone);
+  writer.writeString(offsets[7], object.region);
+  writer.writeByte(offsets[8], object.role.index);
 }
 
 UserEntity _userEntityDeserialize(
@@ -100,10 +113,11 @@ UserEntity _userEntityDeserialize(
   object.isGoogle = reader.readBool(offsets[2]);
   object.name = reader.readString(offsets[3]);
   object.password = reader.readStringOrNull(offsets[4]);
-  object.phone = reader.readString(offsets[5]);
-  object.region = reader.readString(offsets[6]);
+  object.permissions = reader.readStringList(offsets[5]) ?? [];
+  object.phone = reader.readString(offsets[6]);
+  object.region = reader.readString(offsets[7]);
   object.role =
-      _UserEntityroleValueEnumMap[reader.readByteOrNull(offsets[7])] ??
+      _UserEntityroleValueEnumMap[reader.readByteOrNull(offsets[8])] ??
       UserRole.admin;
   return object;
 }
@@ -126,10 +140,12 @@ P _userEntityDeserializeProp<P>(
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
       return (_UserEntityroleValueEnumMap[reader.readByteOrNull(offset)] ??
               UserRole.admin)
           as P;
@@ -913,6 +929,200 @@ extension UserEntityQueryFilter
     });
   }
 
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'permissions',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'permissions',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'permissions',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'permissions',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'permissions',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'permissions',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'permissions',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'permissions',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'permissions', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'permissions', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'permissions', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'permissions', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'permissions', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'permissions', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'permissions', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition>
+  permissionsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'permissions',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<UserEntity, UserEntity, QAfterFilterCondition> phoneEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1523,6 +1733,12 @@ extension UserEntityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<UserEntity, UserEntity, QDistinct> distinctByPermissions() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'permissions');
+    });
+  }
+
   QueryBuilder<UserEntity, UserEntity, QDistinct> distinctByPhone({
     bool caseSensitive = true,
   }) {
@@ -1581,6 +1797,13 @@ extension UserEntityQueryProperty
   QueryBuilder<UserEntity, String?, QQueryOperations> passwordProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'password');
+    });
+  }
+
+  QueryBuilder<UserEntity, List<String>, QQueryOperations>
+  permissionsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'permissions');
     });
   }
 

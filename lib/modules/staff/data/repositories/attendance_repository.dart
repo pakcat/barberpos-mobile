@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
@@ -5,18 +6,27 @@ import '../../../../core/config/app_config.dart';
 import '../datasources/attendance_remote_data_source.dart';
 import '../entities/attendance_entity.dart';
 import '../models/attendance_dto.dart';
+import 'attendance_outbox_repository.dart';
+import '../entities/attendance_outbox_entity.dart';
 
 class AttendanceRepository {
   AttendanceRepository(
     this._isar, {
     AttendanceRemoteDataSource? restRemote,
     AppConfig? config,
+    AttendanceOutboxRepository? outbox,
   })  : _config = config ?? Get.find<AppConfig>(),
-        _rest = restRemote;
+        _rest = restRemote,
+        _outbox =
+            outbox ??
+            (Get.isRegistered<AttendanceOutboxRepository>()
+                ? Get.find<AttendanceOutboxRepository>()
+                : null);
 
   final Isar _isar;
   final AttendanceRemoteDataSource? _rest;
   final AppConfig _config;
+  final AttendanceOutboxRepository? _outbox;
 
   bool get _useRest => _config.backend == BackendMode.rest && _rest != null;
 
@@ -53,16 +63,35 @@ class AttendanceRepository {
           await _rest!.checkIn(
             entity.employeeName,
             employeeId: entity.employeeId?.toInt(),
+            date: entity.date,
             source: entity.source,
           );
         } else {
           await _rest!.checkOut(
             entity.employeeName,
             employeeId: entity.employeeId?.toInt(),
+            date: entity.date,
             source: entity.source,
           );
         }
-      } catch (_) {}
+      } on DioException catch (e) {
+        // Queue only transient/offline errors. HTTP errors (403/401/etc) should not be retried blindly.
+        if (e.response == null && _outbox != null) {
+          final action = entity.checkOut == null
+              ? AttendanceOutboxActionEntity.checkIn
+              : AttendanceOutboxActionEntity.checkOut;
+          await _outbox.enqueue(
+            action: action,
+            employeeName: entity.employeeName,
+            employeeId: entity.employeeId,
+            date: entity.date,
+            source: entity.source,
+          );
+        }
+        // Keep local state; surface error via logs/Sync screen.
+      } catch (_) {
+        // Keep local state if unexpected.
+      }
     }
     return id;
   }

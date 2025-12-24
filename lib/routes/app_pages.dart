@@ -72,7 +72,9 @@ import '../modules/splash/presentation/bindings/splash_binding.dart';
 import '../modules/splash/presentation/controllers/splash_controller.dart';
 import '../modules/splash/presentation/views/splash_view.dart';
 import '../core/middlewares/auth_middleware.dart';
+import '../core/middlewares/permission_middleware.dart';
 import 'app_routes.dart';
+import '../modules/staff/presentation/models/employee_model.dart';
 
 class AppPages {
   const AppPages._();
@@ -114,31 +116,46 @@ class AppPages {
       name: Routes.cashier,
       page: () => const CashierView(),
       binding: CashierBinding(),
-      middlewares: [AuthMiddleware(allowStaff: true)],
+      middlewares: [
+        AuthMiddleware(allowStaff: true),
+        PermissionMiddleware(permission: EmployeeModuleKeys.cashier),
+      ],
     ),
     GetPage<CashierController>(
       name: Routes.orderDetail,
       page: () => const OrderDetailView(),
       binding: CashierBinding(),
-      middlewares: [AuthMiddleware(allowStaff: true)],
+      middlewares: [
+        AuthMiddleware(allowStaff: true),
+        PermissionMiddleware(permission: EmployeeModuleKeys.cashier),
+      ],
     ),
     GetPage<CashierController>(
       name: Routes.stylist,
       page: () => const StylistView(),
       binding: CashierBinding(),
-      middlewares: [AuthMiddleware(allowStaff: true)],
+      middlewares: [
+        AuthMiddleware(allowStaff: true),
+        PermissionMiddleware(permission: EmployeeModuleKeys.cashier),
+      ],
     ),
     GetPage<CashierController>(
       name: Routes.payment,
       page: () => const PaymentView(),
       binding: CashierBinding(),
-      middlewares: [AuthMiddleware(allowStaff: true)],
+      middlewares: [
+        AuthMiddleware(allowStaff: true),
+        PermissionMiddleware(permission: EmployeeModuleKeys.cashier),
+      ],
     ),
     GetPage<CashierController>(
       name: Routes.paymentSuccess,
       page: () => const PaymentSuccessView(),
       binding: CashierBinding(),
-      middlewares: [AuthMiddleware(allowStaff: true)],
+      middlewares: [
+        AuthMiddleware(allowStaff: true),
+        PermissionMiddleware(permission: EmployeeModuleKeys.cashier),
+      ],
     ),
     GetPage<StockController>(
       name: Routes.stock,
@@ -174,7 +191,10 @@ class AppPages {
       name: Routes.customers,
       page: () => const CustomerListView(),
       binding: ManagementBinding(),
-      middlewares: [AuthMiddleware(allowStaff: true)],
+      middlewares: [
+        AuthMiddleware(allowStaff: true),
+        PermissionMiddleware(permission: EmployeeModuleKeys.customers),
+      ],
     ),
     GetPage<ManagementController>(
       name: Routes.customerForm,
@@ -198,13 +218,19 @@ class AppPages {
       name: Routes.transactions,
       page: () => const TransactionListView(),
       binding: TransactionBinding(),
-      middlewares: [AuthMiddleware(allowStaff: true)],
+      middlewares: [
+        AuthMiddleware(allowStaff: true),
+        PermissionMiddleware(permission: EmployeeModuleKeys.transactions),
+      ],
     ),
     GetPage<TransactionController>(
       name: Routes.transactionDetail,
       page: () => const TransactionDetailView(),
       binding: TransactionBinding(),
-      middlewares: [AuthMiddleware(allowStaff: true)],
+      middlewares: [
+        AuthMiddleware(allowStaff: true),
+        PermissionMiddleware(permission: EmployeeModuleKeys.transactions),
+      ],
     ),
     GetPage<ReportsController>(
       name: Routes.reports,
@@ -234,7 +260,10 @@ class AppPages {
       name: Routes.closing,
       page: () => const ClosingView(),
       binding: ClosingBinding(),
-      middlewares: [AuthMiddleware(allowStaff: true)],
+      middlewares: [
+        AuthMiddleware(allowStaff: true),
+        PermissionMiddleware(permission: EmployeeModuleKeys.closing),
+      ],
     ),
     GetPage<MembershipController>(
       name: Routes.membership,
@@ -288,7 +317,7 @@ class AppPages {
       name: Routes.sync,
       page: () => const SyncView(),
       binding: SyncBinding(),
-      middlewares: [AuthMiddleware(requireManager: true)],
+      middlewares: [AuthMiddleware(allowStaff: true)],
     ),
   ];
 }

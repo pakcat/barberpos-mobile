@@ -21,6 +21,7 @@ import '../../modules/staff/data/repositories/staff_repository.dart';
 import '../../modules/staff/data/datasources/staff_remote_data_source.dart';
 import '../../modules/staff/data/repositories/attendance_repository.dart';
 import '../../modules/staff/data/datasources/attendance_remote_data_source.dart';
+import '../../modules/staff/data/repositories/attendance_outbox_repository.dart';
 import '../../modules/reports/data/repositories/reports_repository.dart';
 import '../../modules/reports/data/datasources/finance_remote_data_source.dart';
 import '../../modules/membership/data/repositories/membership_repository.dart';
@@ -52,6 +53,7 @@ class GlobalBindings extends Bindings {
     Get.put<ProductOutboxRepository>(ProductOutboxRepository(dbReady), permanent: true);
     Get.put<ProductImageOutboxRepository>(ProductImageOutboxRepository(dbReady), permanent: true);
     Get.put<QrisOutboxRepository>(QrisOutboxRepository(dbReady), permanent: true);
+    Get.put<AttendanceOutboxRepository>(AttendanceOutboxRepository(dbReady), permanent: true);
     Get.put<SyncQueueService>(SyncQueueService(), permanent: true);
     Get.put<NetworkStatusService>(NetworkStatusService(), permanent: true);
 

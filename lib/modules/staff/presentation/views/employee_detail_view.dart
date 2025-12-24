@@ -51,7 +51,7 @@ class EmployeeDetailView extends GetView<StaffController> {
                         Text(employee.name,
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
                         const SizedBox(height: AppDimens.spacingXs),
-                        Text('${employee.role} · ${employee.phone}', style: const TextStyle(color: Colors.white70)),
+                        Text('Karyawan · ${employee.phone}', style: const TextStyle(color: Colors.white70)),
                         Text(employee.email, style: const TextStyle(color: Colors.white70)),
                       ],
                     ),

@@ -24,6 +24,7 @@ class AppUser {
     this.region = '',
     this.isGoogle = false,
     this.password,
+    this.permissions = const <String>[],
   });
 
   final String id;
@@ -35,6 +36,7 @@ class AppUser {
   final String region;
   final bool isGoogle;
   final String? password;
+  final List<String> permissions;
 
   AppUser copyWith({
     String? name,
@@ -45,6 +47,7 @@ class AppUser {
     String? region,
     bool? isGoogle,
     String? password,
+    List<String>? permissions,
   }) {
     return AppUser(
       id: id,
@@ -56,6 +59,7 @@ class AppUser {
       region: region ?? this.region,
       isGoogle: isGoogle ?? this.isGoogle,
       password: password ?? this.password,
+      permissions: permissions ?? this.permissions,
     );
   }
 }
@@ -96,6 +100,14 @@ class AuthService extends GetxService {
       _currentUser.value?.role == UserRole.admin ||
       _currentUser.value?.role == UserRole.manager;
   bool get isStaffOnly => _currentUser.value?.role == UserRole.staff;
+
+  bool staffCan(String moduleKey) {
+    if (!isStaffOnly) return true;
+    final perms = _currentUser.value?.permissions ?? const <String>[];
+    // Backward compatible: if not provided by backend, allow all.
+    if (perms.isEmpty) return true;
+    return perms.contains(moduleKey);
+  }
   String? get lastError => _lastErrorMessage;
 
   @override
@@ -496,6 +508,7 @@ class AuthService extends GetxService {
       ..phone = user.phone
       ..address = user.address
       ..region = user.region
+      ..permissions = user.permissions.toList()
       ..role = user.role
       ..isGoogle = user.isGoogle
       ..password = user.password;
@@ -514,6 +527,7 @@ class AuthService extends GetxService {
       region: e.region,
       isGoogle: e.isGoogle,
       password: e.password,
+      permissions: e.permissions,
     );
   }
 
@@ -524,6 +538,7 @@ class AuthService extends GetxService {
       ..phone = dto.phone
       ..address = dto.address
       ..region = dto.region
+      ..permissions = dto.permissions.toList()
       ..role = _roleFromString(dto.role)
       ..isGoogle = dto.isGoogle
       ..password = fallbackPassword;

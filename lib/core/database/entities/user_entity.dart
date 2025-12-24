@@ -12,6 +12,7 @@ class UserEntity {
   String phone = '';
   String address = '';
   String region = '';
+  List<String> permissions = [];
   @enumerated
   UserRole role = UserRole.manager;
   bool isGoogle = false;

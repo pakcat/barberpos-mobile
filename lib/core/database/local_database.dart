@@ -24,6 +24,7 @@ import '../../modules/membership/data/entities/membership_state_entity.dart';
 import '../../modules/cashier/data/entities/cart_item_entity.dart';
 import '../../modules/cashier/data/entities/order_outbox_entity.dart';
 import '../../modules/staff/data/entities/attendance_entity.dart';
+import '../../modules/staff/data/entities/attendance_outbox_entity.dart';
 import '../../modules/settings/data/entities/qris_outbox_entity.dart';
 
 class LocalDatabase extends GetxService {
@@ -54,6 +55,7 @@ class LocalDatabase extends GetxService {
         CartItemEntitySchema,
         OrderOutboxEntitySchema,
         AttendanceEntitySchema,
+        AttendanceOutboxEntitySchema,
         QrisOutboxEntitySchema,
       ],
       directory: dir.path,

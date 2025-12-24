@@ -18,6 +18,9 @@ import '../../modules/product/data/repositories/product_image_outbox_repository.
 import '../../modules/settings/data/repositories/qris_outbox_repository.dart';
 import '../../modules/settings/data/datasources/settings_remote_data_source.dart';
 import '../../modules/settings/data/entities/qris_outbox_entity.dart';
+import '../../modules/staff/data/repositories/attendance_outbox_repository.dart';
+import '../../modules/staff/data/entities/attendance_outbox_entity.dart';
+import 'auth_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
@@ -36,6 +39,8 @@ class SyncService extends GetxService {
   late final ProductRepository _products;
   late final ProductImageOutboxRepository _productImages;
   late final QrisOutboxRepository _qrisOutbox;
+  late final AttendanceOutboxRepository _attendanceOutbox;
+  AuthService? _auth;
   NetworkService? _network;
 
   @override
@@ -55,17 +60,22 @@ class SyncService extends GetxService {
     _products = Get.find<ProductRepository>();
     _productImages = Get.find<ProductImageOutboxRepository>();
     _qrisOutbox = Get.find<QrisOutboxRepository>();
+    _attendanceOutbox = Get.find<AttendanceOutboxRepository>();
     _network = Get.isRegistered<NetworkService>() ? Get.find<NetworkService>() : null;
+    _auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
     _timer = Timer.periodic(_interval, (_) => unawaited(syncAll()));
   }
 
   Future<void> syncAll() async {
     await syncActivityLogs();
-    await syncStockAdjustments();
     await syncOrders();
-    await syncProducts();
-    await syncProductImages();
-    await syncQris();
+    await syncAttendance();
+    if (_auth?.isManager == true) {
+      await syncStockAdjustments();
+      await syncProducts();
+      await syncProductImages();
+      await syncQris();
+    }
     await cleanupOutbox();
   }
 
@@ -201,6 +211,48 @@ class SyncService extends GetxService {
         continue;
       } catch (e) {
         await _orders.markFailed(id: item.id, message: e.toString());
+        continue;
+      }
+    }
+  }
+
+  Future<void> syncAttendance() async {
+    if (_network == null) return;
+    await _ready;
+    final pending = await _attendanceOutbox.pending(limit: 20);
+    if (pending.isEmpty) return;
+
+    for (final item in pending) {
+      try {
+        await _attendanceOutbox.recordAttempt(id: item.id);
+        final endpoint = item.action == AttendanceOutboxActionEntity.checkIn
+            ? '/attendance/checkin'
+            : '/attendance/checkout';
+        await _network!.dio.post(
+          endpoint,
+          data: {
+            'employeeId': item.employeeId,
+            'employeeName': item.employeeName,
+            'date':
+                '${item.date.year}-${item.date.month.toString().padLeft(2, '0')}-${item.date.day.toString().padLeft(2, '0')}',
+            'source': item.source,
+          },
+        );
+        await _attendanceOutbox.markSynced(id: item.id);
+      } on DioException catch (e) {
+        final status = e.response?.statusCode;
+        if (_isPermanentHttpFailure(status)) {
+          await _attendanceOutbox.markPermanentFailed(
+            id: item.id,
+            message: 'HTTP $status: ${e.message ?? 'error'}',
+          );
+          continue;
+        }
+        await _attendanceOutbox.markFailed(id: item.id, message: e.message ?? 'Network error');
+        if (e.response == null) break;
+        continue;
+      } catch (e) {
+        await _attendanceOutbox.markFailed(id: item.id, message: e.toString());
         continue;
       }
     }
@@ -384,6 +436,7 @@ class SyncService extends GetxService {
       await _productOutbox.pruneSyncedOlderThan(age: const Duration(days: 2));
       await _productImages.pruneSyncedOlderThan(age: const Duration(days: 2));
       await _qrisOutbox.pruneSyncedOlderThan(age: const Duration(days: 2));
+      await _attendanceOutbox.pruneSyncedOlderThan(age: const Duration(days: 2));
 
       // Remove very old failed upload rows to avoid unbounded growth.
       // (Files may already be missing; we don't attempt to delete cache paths here.)

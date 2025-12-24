@@ -15,9 +15,6 @@ class EmployeeFormView extends GetView<StaffController> {
     final id = Get.arguments as String?;
     final existing = id != null ? controller.getById(id) : null;
     final name = TextEditingController(text: existing?.name ?? '');
-    final roles = ['Admin', 'Kasir', 'Barber'];
-    final initialRole = roles.contains(existing?.role) ? existing!.role : roles.first;
-    String selectedRole = initialRole;
     final phone = TextEditingController(text: existing?.phone ?? '');
     final email = TextEditingController(text: existing?.email ?? '');
     final pin = TextEditingController(text: existing?.pin ?? '');
@@ -26,16 +23,25 @@ class EmployeeFormView extends GetView<StaffController> {
     );
     var status = existing?.status ?? EmployeeStatus.active;
 
+    final selectedModules = <String>{
+      ...?existing?.modules,
+    }.obs;
+
     void save() {
       if (name.text.trim().isEmpty) {
         Get.snackbar('Validasi', 'Nama wajib diisi');
+        return;
+      }
+      if (existing == null && pin.text.trim().isEmpty) {
+        Get.snackbar('Validasi', 'PIN wajib diisi untuk karyawan baru');
         return;
       }
       controller.upsert(
         Employee(
           id: id ?? DateTime.now().toIso8601String(),
           name: name.text.trim(),
-          role: selectedRole,
+          role: 'Staff',
+          modules: selectedModules.toList(),
           phone: phone.text.trim(),
           email: email.text.trim(),
           pin: pin.text.trim().isEmpty ? existing?.pin : pin.text.trim(),
@@ -58,7 +64,7 @@ class EmployeeFormView extends GetView<StaffController> {
             email.text.trim().isNotEmpty ||
             pin.text.trim().isNotEmpty ||
             commission.text.trim().isNotEmpty ||
-            selectedRole != (existing?.role ?? roles.first);
+            selectedModules.toSet() != {...?existing?.modules};
         if (!dirty) return true;
         return await _confirmDiscard();
       },
@@ -71,18 +77,63 @@ class EmployeeFormView extends GetView<StaffController> {
               decoration: const InputDecoration(labelText: 'Nama Lengkap *'),
             ),
             const SizedBox(height: AppDimens.spacingMd),
-            DropdownButtonFormField<String>(
-              initialValue: selectedRole,
-              decoration: const InputDecoration(labelText: 'Role *'),
-              dropdownColor: AppColors.grey800,
-              items: roles
-                  .map(
-                    (r) => DropdownMenuItem<String>(value: r, child: Text(r)),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) selectedRole = value;
-              },
+            Obx(
+              () => Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppDimens.spacingMd),
+                decoration: BoxDecoration(
+                  color: AppColors.grey800,
+                  borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Akses Menu Karyawan',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: AppDimens.spacingSm),
+                    const Text(
+                      'Absensi, Membership, dan Sinkronisasi selalu tersedia. Pilih menu tambahan yang boleh diakses.',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                    const SizedBox(height: AppDimens.spacingMd),
+                    _ModuleTile(
+                      label: 'Kasir',
+                      value: EmployeeModuleKeys.cashier,
+                      selected: selectedModules.contains(EmployeeModuleKeys.cashier),
+                      onChanged: (v) {
+                        v ? selectedModules.add(EmployeeModuleKeys.cashier) : selectedModules.remove(EmployeeModuleKeys.cashier);
+                      },
+                    ),
+                    _ModuleTile(
+                      label: 'Transaksi',
+                      value: EmployeeModuleKeys.transactions,
+                      selected: selectedModules.contains(EmployeeModuleKeys.transactions),
+                      onChanged: (v) {
+                        v ? selectedModules.add(EmployeeModuleKeys.transactions) : selectedModules.remove(EmployeeModuleKeys.transactions);
+                      },
+                    ),
+                    _ModuleTile(
+                      label: 'Pelanggan',
+                      value: EmployeeModuleKeys.customers,
+                      selected: selectedModules.contains(EmployeeModuleKeys.customers),
+                      onChanged: (v) {
+                        v ? selectedModules.add(EmployeeModuleKeys.customers) : selectedModules.remove(EmployeeModuleKeys.customers);
+                      },
+                    ),
+                    _ModuleTile(
+                      label: 'Tutup Buku',
+                      value: EmployeeModuleKeys.closing,
+                      selected: selectedModules.contains(EmployeeModuleKeys.closing),
+                      onChanged: (v) {
+                        v ? selectedModules.add(EmployeeModuleKeys.closing) : selectedModules.remove(EmployeeModuleKeys.closing);
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: AppDimens.spacingMd),
             TextField(
@@ -99,8 +150,8 @@ class EmployeeFormView extends GetView<StaffController> {
               controller: pin,
               obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'PIN (Opsional)',
-                helperText: 'Kosongkan jika tidak ingin mengubah PIN',
+                labelText: 'PIN *',
+                helperText: 'Wajib saat membuat karyawan. Kosongkan saat edit jika tidak ingin mengubah.',
               ),
             ),
             const SizedBox(height: AppDimens.spacingMd),
@@ -178,4 +229,42 @@ Future<bool> _confirmDiscard() async {
     ),
   );
   return result ?? false;
+}
+
+class _ModuleTile extends StatelessWidget {
+  const _ModuleTile({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String value;
+  final bool selected;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!selected),
+      borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Checkbox(
+              value: selected,
+              onChanged: (v) => onChanged(v ?? false),
+              activeColor: AppColors.orange500,
+              checkColor: Colors.black,
+            ),
+            Expanded(
+              child: Text(label, style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

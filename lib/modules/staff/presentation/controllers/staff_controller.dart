@@ -59,7 +59,9 @@ class StaffController extends GetxController {
 
     logs.add(
       title: index >= 0 ? 'Ubah karyawan' : 'Tambah karyawan',
-      message: '${employee.name} (${employee.role}) disimpan',
+      message: employee.name.isNotEmpty
+          ? '${employee.name} disimpan'
+          : 'Karyawan disimpan',
       actor: 'Manager',
     );
     Get.back();
@@ -124,6 +126,7 @@ class StaffController extends GetxController {
     id: e.id.toString(),
     name: e.name,
     role: e.role,
+    modules: e.modules,
     phone: e.phone,
     email: e.email,
     joinDate: e.joinDate,
@@ -135,6 +138,7 @@ class StaffController extends GetxController {
     final entity = EmployeeEntity()
       ..name = e.name
       ..role = e.role
+      ..modules = e.modules.toList()
       ..phone = e.phone
       ..email = e.email
       ..joinDate = e.joinDate

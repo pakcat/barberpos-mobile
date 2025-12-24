@@ -6,18 +6,34 @@ class AttendanceRemoteDataSource {
 
   final NetworkService _network;
 
-  Future<void> checkIn(String name, {int? employeeId, String? source}) async {
+  Future<void> checkIn(
+    String name, {
+    int? employeeId,
+    DateTime? date,
+    String? source,
+  }) async {
+    final effective = date ?? DateTime.now();
     await _network.dio.post('/attendance/checkin', data: {
       'employeeId': employeeId,
       'employeeName': name,
+      'date':
+          '${effective.year}-${effective.month.toString().padLeft(2, '0')}-${effective.day.toString().padLeft(2, '0')}',
       if (source != null && source.isNotEmpty) 'source': source,
     });
   }
 
-  Future<void> checkOut(String name, {int? employeeId, String? source}) async {
+  Future<void> checkOut(
+    String name, {
+    int? employeeId,
+    DateTime? date,
+    String? source,
+  }) async {
+    final effective = date ?? DateTime.now();
     await _network.dio.post('/attendance/checkout', data: {
       'employeeId': employeeId,
       'employeeName': name,
+      'date':
+          '${effective.year}-${effective.month.toString().padLeft(2, '0')}-${effective.day.toString().padLeft(2, '0')}',
       if (source != null && source.isNotEmpty) 'source': source,
     });
   }
