@@ -17,7 +17,6 @@ Dio buildDioClient(AppConfig config, {SessionService? session}) {
     ),
   );
 
-  dio.interceptors.add(ResponseEnvelopeInterceptor());
   dio.interceptors.add(
     PrettyDioLogger(
       requestHeader: true,
@@ -29,6 +28,7 @@ Dio buildDioClient(AppConfig config, {SessionService? session}) {
       maxWidth: 120,
     ),
   );
+  dio.interceptors.add(ResponseEnvelopeInterceptor());
   if (session != null) {
     dio.interceptors.add(AuthInterceptor(session));
     dio.interceptors.add(RefreshTokenInterceptor(session: session, baseUrl: config.baseUrl));
