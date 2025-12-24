@@ -1,13 +1,14 @@
 import 'package:dio/dio.dart';
 
 import '../services/session_service.dart';
+import 'response_envelope_interceptor.dart';
 
 class RefreshTokenInterceptor extends Interceptor {
   RefreshTokenInterceptor({
     required this.session,
     required this.baseUrl,
     this.refreshPath = '/auth/refresh',
-  }) : _refreshDio = Dio(BaseOptions(baseUrl: baseUrl));
+  }) : _refreshDio = Dio(BaseOptions(baseUrl: baseUrl))..interceptors.add(ResponseEnvelopeInterceptor());
 
   final SessionService session;
   final String baseUrl;
@@ -63,6 +64,7 @@ class RefreshTokenInterceptor extends Interceptor {
   }
 
   Future<Response<dynamic>> _retry(RequestOptions request, String token) {
+    final dio = Dio(BaseOptions(baseUrl: baseUrl))..interceptors.add(ResponseEnvelopeInterceptor());
     final options = Options(
       method: request.method,
       headers: Map<String, dynamic>.from(request.headers)..['Authorization'] = 'Bearer $token',
@@ -70,7 +72,7 @@ class RefreshTokenInterceptor extends Interceptor {
       responseType: request.responseType,
       contentType: request.contentType,
     );
-    return Dio(BaseOptions(baseUrl: baseUrl)).request<dynamic>(
+    return dio.request<dynamic>(
       request.path,
       data: request.data,
       queryParameters: request.queryParameters,

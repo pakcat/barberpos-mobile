@@ -47,6 +47,10 @@ dev_dependencies:
   mocktail: ^1.0.4
   path_provider_platform_interface: ^2.1.1
 
+dependency_overrides:
+  flutter_bluetooth_serial:
+    path: third_party/flutter_bluetooth_serial
+
 flutter:
   uses-material-design: true
   assets:

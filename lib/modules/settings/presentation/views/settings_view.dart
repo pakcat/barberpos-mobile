@@ -144,9 +144,10 @@ class SettingsView extends GetView<SettingsController> {
                   const SizedBox(height: AppDimens.spacingSm),
                   Obx(
                     () => DropdownButtonFormField<String>(
+                      key: ValueKey<String>('paperSize:${controller.paperSize.value}'),
                       initialValue: const {'58mm', '80mm', 'A4'}.contains(controller.paperSize.value)
                           ? controller.paperSize.value
-                          : null,
+                          : '58mm',
                       dropdownColor: AppColors.grey800,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
@@ -179,6 +180,7 @@ class SettingsView extends GetView<SettingsController> {
                   const SizedBox(height: AppDimens.spacingSm),
                   Obx(
                     () => DropdownButtonFormField<String>(
+                      key: ValueKey<String>('printerType:${controller.printerType.value}'),
                       initialValue: const {'system', 'lan', 'bluetooth'}.contains(controller.printerType.value)
                           ? controller.printerType.value
                           : 'system',

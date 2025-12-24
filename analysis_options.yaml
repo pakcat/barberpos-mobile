@@ -1,1 +1,7 @@
 include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - third_party/**
+    - build/**
+    - .dart_tool/**
