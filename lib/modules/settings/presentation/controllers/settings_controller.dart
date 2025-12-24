@@ -25,7 +25,7 @@ class SettingsController extends GetxController {
   final RxString receiptFooter = ''.obs;
   final RxString defaultPaymentMethod = ''.obs;
   final RxString printerName = ''.obs;
-  final RxString paperSize = ''.obs;
+  final RxString paperSize = SettingsProfile.defaults().paperSize.obs;
 
   final RxBool autoPrint = true.obs;
   final RxBool notifications = true.obs;
@@ -70,7 +70,11 @@ class SettingsController extends GetxController {
     receiptFooter.value = profile.receiptFooter;
     defaultPaymentMethod.value = profile.defaultPaymentMethod;
     printerName.value = profile.printerName;
-    paperSize.value = profile.paperSize;
+    const supportedPaperSizes = {'58mm', '80mm', 'A4'};
+    final normalizedPaperSize = supportedPaperSizes.contains(profile.paperSize)
+        ? profile.paperSize
+        : SettingsProfile.defaults().paperSize;
+    paperSize.value = normalizedPaperSize;
     autoPrint.value = profile.autoPrint;
     notifications.value = profile.notifications;
     trackStock.value = profile.trackStock;
@@ -94,6 +98,10 @@ class SettingsController extends GetxController {
   }
 
   Future<void> saveProfile() async {
+    const supportedPaperSizes = {'58mm', '80mm', 'A4'};
+    final normalizedPaperSize = supportedPaperSizes.contains(paperSize.value)
+        ? paperSize.value
+        : SettingsProfile.defaults().paperSize;
     final profile = SettingsProfile(
       businessName: businessNameController.text.trim(),
       businessAddress: businessAddressController.text.trim(),
@@ -101,7 +109,7 @@ class SettingsController extends GetxController {
       receiptFooter: receiptFooterController.text.trim(),
       defaultPaymentMethod: defaultPaymentMethod.value,
       printerName: printerNameController.text.trim(),
-      paperSize: paperSize.value,
+      paperSize: normalizedPaperSize,
       autoPrint: autoPrint.value,
       notifications: notifications.value,
       trackStock: trackStock.value,

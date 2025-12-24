@@ -5,6 +5,7 @@ import '../config/app_config.dart';
 import '../services/session_service.dart';
 import 'auth_interceptor.dart';
 import 'refresh_token_interceptor.dart';
+import 'response_envelope_interceptor.dart';
 
 Dio buildDioClient(AppConfig config, {SessionService? session}) {
   final dio = Dio(
@@ -16,6 +17,7 @@ Dio buildDioClient(AppConfig config, {SessionService? session}) {
     ),
   );
 
+  dio.interceptors.add(ResponseEnvelopeInterceptor());
   dio.interceptors.add(
     PrettyDioLogger(
       requestHeader: true,

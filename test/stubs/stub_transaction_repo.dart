@@ -32,9 +32,25 @@ class StubTransactionRepository implements TransactionRepository {
   Future<List<TransactionEntity>> getAll() async => _txs;
 
   @override
+  Future<List<TransactionEntity>> getRange(DateTime start, DateTime end) async {
+    return _txs
+        .where((t) => !t.date.isBefore(start) && !t.date.isAfter(end))
+        .toList();
+  }
+
+  @override
   Future<Id> upsert(TransactionEntity tx) async {
+    _txs.removeWhere((t) => t.id == tx.id);
     _txs.add(tx);
     return tx.id;
+  }
+
+  @override
+  Future<void> upsertAll(Iterable<TransactionEntity> items) async {
+    for (final tx in items) {
+      _txs.removeWhere((t) => t.id == tx.id);
+      _txs.add(tx);
+    }
   }
 
   @override

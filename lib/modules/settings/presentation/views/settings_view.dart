@@ -142,7 +142,9 @@ class SettingsView extends GetView<SettingsController> {
                   const SizedBox(height: AppDimens.spacingSm),
                   Obx(
                     () => DropdownButtonFormField<String>(
-                      initialValue: controller.paperSize.value,
+                      initialValue: const {'58mm', '80mm', 'A4'}.contains(controller.paperSize.value)
+                          ? controller.paperSize.value
+                          : null,
                       dropdownColor: AppColors.grey800,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(

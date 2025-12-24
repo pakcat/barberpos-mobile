@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:barberpos_mobile/core/services/auth_service.dart';
 
-import 'fakes/fake_activity_log_service.dart';
 import 'fakes/fake_session_service.dart';
 import 'fakes/fake_user_repository.dart';
 import 'fakes/fake_network_service.dart';
@@ -9,17 +8,14 @@ import 'stubs/stub_auth_remote.dart';
 
 void main() {
   late FakeUserRepository userRepo;
-  late FakeActivityLogService logs;
   late FakeSessionService session;
   late AuthService auth;
 
   setUp(() {
     userRepo = FakeUserRepository();
-    logs = FakeActivityLogService();
     session = FakeSessionService();
     auth = AuthService(
       userRepository: userRepo,
-      logs: logs,
       session: session,
       network: FakeNetworkService(),
       remote: StubAuthRemoteDataSource(),

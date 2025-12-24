@@ -27,9 +27,25 @@ class StubReportsRepository implements ReportsRepository {
   Future<List<FinanceEntryEntity>> getAll() async => _entries;
 
   @override
+  Future<List<FinanceEntryEntity>> getRange(DateTime start, DateTime end) async {
+    return _entries
+        .where((e) => !e.date.isBefore(start) && !e.date.isAfter(end))
+        .toList();
+  }
+
+  @override
   Future<Id> upsert(FinanceEntryEntity entry) async {
+    _entries.removeWhere((e) => e.id == entry.id);
     _entries.add(entry);
     return entry.id;
+  }
+
+  @override
+  Future<void> upsertAll(Iterable<FinanceEntryEntity> items) async {
+    for (final entry in items) {
+      _entries.removeWhere((e) => e.id == entry.id);
+      _entries.add(entry);
+    }
   }
 
   @override
