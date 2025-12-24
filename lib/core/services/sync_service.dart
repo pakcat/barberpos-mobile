@@ -28,6 +28,7 @@ class SyncService extends GetxService {
   void onInit() {
     super.onInit();
     _ready = _init();
+    unawaited(_ready.then((_) => syncAll()));
   }
 
   Future<void> _init() async {
@@ -37,8 +38,7 @@ class SyncService extends GetxService {
     _txRepo = Get.find<TransactionRepository>();
     _reports = Get.find<ReportsRepository>();
     _network = Get.isRegistered<NetworkService>() ? Get.find<NetworkService>() : null;
-    _timer = Timer.periodic(_interval, (_) => syncAll());
-    unawaited(syncAll());
+    _timer = Timer.periodic(_interval, (_) => unawaited(syncAll()));
   }
 
   Future<void> syncAll() async {
