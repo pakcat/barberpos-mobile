@@ -2,23 +2,24 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
 
 import '../config/app_config.dart';
+import '../models/notification_message.dart';
 import '../network/network_service.dart';
-import 'activity_log_service.dart';
+import 'notification_service.dart';
 
 class PushNotificationService extends GetxService {
   PushNotificationService({
     FirebaseMessaging? messaging,
     AppConfig? config,
-    ActivityLogService? logs,
+    NotificationService? notifications,
     NetworkService? network,
   })  : _messaging = messaging ?? FirebaseMessaging.instance,
         _config = config ?? Get.find<AppConfig>(),
-        _logs = logs ?? Get.find<ActivityLogService>(),
+        _notifications = notifications ?? Get.find<NotificationService>(),
         _network = network ?? (Get.isRegistered<NetworkService>() ? Get.find<NetworkService>() : null);
 
   final FirebaseMessaging _messaging;
   final AppConfig _config;
-  final ActivityLogService _logs;
+  final NotificationService _notifications;
   final NetworkService? _network;
 
   Future<void> init() async {
@@ -30,17 +31,11 @@ class PushNotificationService extends GetxService {
       provisional: true,
     );
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      await _logs.add(
-        title: 'Notifikasi ditolak',
-        message: 'Izin notifikasi tidak diberikan',
-        type: ActivityLogType.warning,
-      );
       return;
     }
     try {
       final token = await _messaging.getToken();
       if (token != null) {
-        await _logs.add(title: 'Token FCM siap', message: token, type: ActivityLogType.info);
         final network = _network;
         if (_config.backend == BackendMode.rest && network != null) {
           try {
@@ -69,6 +64,6 @@ class PushNotificationService extends GetxService {
   void _handleForegroundMessage(RemoteMessage message) {
     final title = message.notification?.title ?? 'Notifikasi';
     final body = message.notification?.body ?? '';
-    _logs.add(title: title, message: body, type: ActivityLogType.info);
+    _notifications.add(title: title, message: body, type: NotificationType.info);
   }
 }

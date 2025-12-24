@@ -35,14 +35,39 @@ class TransactionListView extends GetView<TransactionController> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Row(
-              children: const [
+              children: [
                 Expanded(
-                  child: AppInputField(
-                    hint: '10 Maret 2025 - 10 April 2025',
-                    prefix: Icon(Icons.calendar_month_rounded, color: Colors.white70),
-                    suffix: Icon(Icons.filter_alt_rounded, color: Colors.white70),
+                  child: GestureDetector(
+                    onTap: () => _pickRange(context),
+                    child: AbsorbPointer(
+                      child: Obx(() {
+                        final range = controller.filterRange.value;
+                        final hint = range == null
+                            ? 'Pilih rentang tanggal'
+                            : '${_formatShortDate(range.start)} - ${_formatShortDate(range.end)}';
+                        return AppInputField(
+                          hint: hint,
+                          prefix: const Icon(Icons.calendar_month_rounded, color: Colors.white70),
+                          suffix: const Icon(Icons.filter_alt_rounded, color: Colors.white70),
+                          enabled: false,
+                        );
+                      }),
+                    ),
                   ),
                 ),
+                Obx(() {
+                  if (controller.filterRange.value == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(left: AppDimens.spacingSm),
+                    child: IconButton(
+                      onPressed: controller.clearRange,
+                      icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                      tooltip: 'Hapus filter',
+                    ),
+                  );
+                }),
               ],
             ),
             const SizedBox(height: AppDimens.spacingLg),
@@ -136,6 +161,25 @@ class TransactionListView extends GetView<TransactionController> {
     return '${_weekday(date.weekday)}, ${date.day.toString().padLeft(2, '0')} ${months[date.month]} ${date.year}';
   }
 
+  String _formatShortDate(DateTime date) {
+    const months = [
+      '',
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    return '${date.day.toString().padLeft(2, '0')} ${months[date.month]} ${date.year}';
+  }
+
   String _weekday(int day) {
     switch (day) {
       case DateTime.monday:
@@ -153,6 +197,25 @@ class TransactionListView extends GetView<TransactionController> {
       case DateTime.sunday:
       default:
         return 'Minggu';
+    }
+  }
+
+  Future<void> _pickRange(BuildContext context) async {
+    final now = DateTime.now();
+    final initial = controller.filterRange.value ??
+        DateTimeRange(
+          start: DateTime(now.year, now.month, 1),
+          end: now,
+        );
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 2),
+      lastDate: DateTime(now.year + 1),
+      initialDateRange: initial,
+      helpText: 'Pilih rentang transaksi',
+    );
+    if (picked != null) {
+      await controller.applyRange(picked);
     }
   }
 }

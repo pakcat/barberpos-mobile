@@ -20,6 +20,20 @@ class TransactionRepository {
     return _isar.transactionEntitys.where().findAll();
   }
 
+  Future<List<TransactionEntity>> getRange(DateTime start, DateTime end) async {
+    if (restRemote != null) {
+      try {
+        final items = await restRemote!.fetchAll(startDate: start, endDate: end);
+        await upsertAll(items);
+        return items;
+      } catch (_) {}
+    }
+    return _isar.transactionEntitys
+        .filter()
+        .dateBetween(start, end, includeLower: true, includeUpper: true)
+        .findAll();
+  }
+
   Future<Id> upsert(TransactionEntity tx) async {
     // Transaction creation through REST API is handled in the cashier flow.
     return _isar.writeTxn(() => _isar.transactionEntitys.put(tx));
@@ -28,6 +42,12 @@ class TransactionRepository {
   Future<void> replaceAll(Iterable<TransactionEntity> items) async {
     await _isar.writeTxn(() async {
       await _isar.transactionEntitys.clear();
+      await _isar.transactionEntitys.putAll(items.toList());
+    });
+  }
+
+  Future<void> upsertAll(Iterable<TransactionEntity> items) async {
+    await _isar.writeTxn(() async {
       await _isar.transactionEntitys.putAll(items.toList());
     });
   }

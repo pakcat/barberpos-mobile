@@ -7,8 +7,21 @@ class FinanceRemoteDataSource {
 
   final Dio _dio;
 
-  Future<List<FinanceEntryEntity>> fetchAll() async {
-    final res = await _dio.get<List<dynamic>>('/finance');
+  Future<List<FinanceEntryEntity>> fetchAll({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final params = <String, dynamic>{};
+    if (startDate != null) {
+      params['startDate'] = _formatDate(startDate);
+    }
+    if (endDate != null) {
+      params['endDate'] = _formatDate(endDate);
+    }
+    final res = await _dio.get<List<dynamic>>(
+      '/finance',
+      queryParameters: params.isEmpty ? null : params,
+    );
     final data = res.data ?? const [];
     return data.map(_toEntity).toList();
   }
@@ -47,5 +60,12 @@ class FinanceRemoteDataSource {
 
   EntryTypeEntity _typeFromString(String v) {
     return v.toLowerCase() == 'expense' ? EntryTypeEntity.expense : EntryTypeEntity.revenue;
+  }
+
+  String _formatDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
   }
 }

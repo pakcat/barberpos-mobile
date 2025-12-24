@@ -1,38 +1,19 @@
 import 'package:get/get.dart';
 
-import '../../../../core/services/activity_log_service.dart';
-import '../models/notification_item.dart';
+import '../../../../core/models/notification_message.dart';
+import '../../../../core/services/notification_service.dart';
 
 class NotificationController extends GetxController {
-  NotificationController({
-    ActivityLogService? logs,
-  }) : _logs = logs ?? Get.find<ActivityLogService>();
+  NotificationController({NotificationService? notifications})
+    : _notifications = notifications ?? Get.find<NotificationService>();
 
-  final ActivityLogService _logs;
-
-  final RxList<NotificationItem> items = <NotificationItem>[].obs;
+  final NotificationService _notifications;
 
   @override
   void onInit() {
     super.onInit();
-    _load();
+    _notifications.refresh();
   }
 
-  Future<void> _load() async {
-    items.assignAll(_logs.logs.map(_mapFromLog));
-  }
-
-  NotificationItem _mapFromLog(ActivityLog log) {
-    return NotificationItem(
-      title: log.title,
-      message: log.message,
-      actor: log.actor,
-      timestamp: log.timestamp,
-      type: switch (log.type) {
-        ActivityLogType.error => NotificationType.error,
-        ActivityLogType.warning => NotificationType.warning,
-        ActivityLogType.info => NotificationType.info,
-      },
-    );
-  }
+  RxList<NotificationMessage> get items => _notifications.notifications;
 }

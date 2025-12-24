@@ -20,6 +20,20 @@ class ReportsRepository {
     return _isar.financeEntryEntitys.where().findAll();
   }
 
+  Future<List<FinanceEntryEntity>> getRange(DateTime start, DateTime end) async {
+    if (restRemote != null) {
+      try {
+        final items = await restRemote!.fetchAll(startDate: start, endDate: end);
+        await upsertAll(items);
+        return items;
+      } catch (_) {}
+    }
+    return _isar.financeEntryEntitys
+        .filter()
+        .dateBetween(start, end, includeLower: true, includeUpper: true)
+        .findAll();
+  }
+
   Future<Id> upsert(FinanceEntryEntity entry) {
     return _isar.writeTxn(() async {
       final id = await _isar.financeEntryEntitys.put(entry);
@@ -35,6 +49,12 @@ class ReportsRepository {
   Future<void> replaceAll(Iterable<FinanceEntryEntity> items) async {
     await _isar.writeTxn(() async {
       await _isar.financeEntryEntitys.clear();
+      await _isar.financeEntryEntitys.putAll(items.toList());
+    });
+  }
+
+  Future<void> upsertAll(Iterable<FinanceEntryEntity> items) async {
+    await _isar.writeTxn(() async {
       await _isar.financeEntryEntitys.putAll(items.toList());
     });
   }

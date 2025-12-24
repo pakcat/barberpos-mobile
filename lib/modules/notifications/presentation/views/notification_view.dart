@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/values/app_colors.dart';
 import '../../../../core/values/app_dimens.dart';
 import '../../../../core/widgets/app_scaffold.dart';
-import '../models/notification_item.dart';
+import '../../../../core/models/notification_message.dart';
 import '../controllers/notification_controller.dart';
 
 class NotificationView extends GetView<NotificationController> {

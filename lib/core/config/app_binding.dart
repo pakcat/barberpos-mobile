@@ -6,6 +6,7 @@ import '../services/sync_service.dart';
 import '../services/region_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
+import '../services/notification_service.dart';
 import '../repositories/user_repository.dart';
 import '../repositories/user_repository_impl.dart';
 import '../../modules/management/data/repositories/management_repository.dart';
@@ -14,6 +15,8 @@ import '../../modules/product/data/repositories/product_repository.dart';
 import '../../modules/product/data/datasources/product_remote_data_source.dart';
 import '../../modules/staff/data/repositories/staff_repository.dart';
 import '../../modules/staff/data/datasources/staff_remote_data_source.dart';
+import '../../modules/staff/data/repositories/attendance_repository.dart';
+import '../../modules/staff/data/datasources/attendance_remote_data_source.dart';
 import '../../modules/reports/data/repositories/reports_repository.dart';
 import '../../modules/reports/data/datasources/finance_remote_data_source.dart';
 import '../../modules/membership/data/repositories/membership_repository.dart';
@@ -45,6 +48,7 @@ class GlobalBindings extends Bindings {
       final session = Get.find<SessionService>();
       return NetworkService(config: config, session: session);
     }, fenix: true);
+    Get.lazyPut<NotificationService>(() => NotificationService(), fenix: true);
 
     // Repositories always backed by Isar for offline; remote sync depends on backend mode.
     Get.lazyPut<RegionService>(
@@ -79,6 +83,16 @@ class GlobalBindings extends Bindings {
         remote: config.backend == BackendMode.rest
             ? StaffRemoteDataSource(Get.find<NetworkService>().dio)
             : null,
+      ),
+      fenix: true,
+    );
+    Get.lazyPut<AttendanceRepository>(
+      () => AttendanceRepository(
+        db.isar,
+        restRemote: config.backend == BackendMode.rest
+            ? AttendanceRemoteDataSource(Get.find<NetworkService>())
+            : null,
+        config: config,
       ),
       fenix: true,
     );
@@ -125,7 +139,6 @@ class GlobalBindings extends Bindings {
     Get.lazyPut<AuthService>(
       () => AuthService(
         userRepository: Get.find<UserRepository>(),
-        logs: Get.find<ActivityLogService>(),
         session: Get.find<SessionService>(),
         network: Get.find<NetworkService>(),
         config: config,

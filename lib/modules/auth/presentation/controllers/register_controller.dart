@@ -7,8 +7,8 @@ import '../../../../routes/app_routes.dart';
 
 class RegisterController extends GetxController {
   RegisterController()
-      : auth = Get.find<AuthService>(),
-        regionsService = Get.find<RegionService>();
+    : auth = Get.find<AuthService>(),
+      regionsService = Get.find<RegionService>();
 
   final AuthService auth;
   final RegionService regionsService;
@@ -66,7 +66,16 @@ class RegisterController extends GetxController {
     );
     loading.value = false;
     if (!success) {
-      error.value = 'Email sudah terdaftar, coba gunakan email lain.';
+      final msg =
+          auth.lastError ?? 'Email sudah terdaftar, coba gunakan email lain.';
+      error.value = msg;
+      if (!Get.testMode) {
+        Get.snackbar(
+          'Registrasi gagal',
+          msg,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
       return;
     }
     Get.offAllNamed(Routes.home);
@@ -80,7 +89,9 @@ class RegisterController extends GetxController {
       email: emailController.text.trim().isNotEmpty
           ? emailController.text.trim().toLowerCase()
           : 'user${DateTime.now().millisecondsSinceEpoch}@google.com',
-      name: nameController.text.trim().isNotEmpty ? nameController.text.trim() : null,
+      name: nameController.text.trim().isNotEmpty
+          ? nameController.text.trim()
+          : null,
       phone: phoneController.text.trim(),
       address: addressController.text.trim(),
       region: region.value,

@@ -35,13 +35,16 @@ class SettingsController extends GetxController {
   final RxBool cashierPin = false.obs;
 
   final TextEditingController businessNameController = TextEditingController();
-  final TextEditingController businessAddressController = TextEditingController();
+  final TextEditingController businessAddressController =
+      TextEditingController();
   final TextEditingController businessPhoneController = TextEditingController();
   final TextEditingController receiptFooterController = TextEditingController();
   final TextEditingController printerNameController = TextEditingController();
-  final TextEditingController currentPasswordController = TextEditingController();
+  final TextEditingController currentPasswordController =
+      TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   final RxBool loading = false.obs;
   final RxnString passwordError = RxnString();
@@ -108,7 +111,10 @@ class SettingsController extends GetxController {
     );
     await _saveSettings(profile);
     _applyProfile(profile);
-    Get.snackbar('Pengaturan disimpan', 'Profil usaha dan preferensi diperbarui');
+    Get.snackbar(
+      'Pengaturan disimpan',
+      'Profil usaha dan preferensi diperbarui',
+    );
   }
 
   @override
@@ -144,7 +150,8 @@ class SettingsController extends GetxController {
           : currentPasswordController.text,
     );
     if (!ok) {
-      passwordError.value = 'Password lama salah atau pengguna belum login.';
+      passwordError.value =
+          _auth.lastError ?? 'Password lama salah atau pengguna belum login.';
       return;
     }
     passwordInfo.value = 'Password diperbarui';

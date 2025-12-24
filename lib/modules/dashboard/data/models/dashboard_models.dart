@@ -13,16 +13,25 @@ class DashboardSummaryDto {
 
   factory DashboardSummaryDto.fromJson(Map<String, dynamic> json) {
     return DashboardSummaryDto(
-      transaksiHariIni: int.tryParse(json['transaksiHariIni']?.toString() ?? '') ??
+      transaksiHariIni:
+          int.tryParse(json['transaksiHariIni']?.toString() ?? '') ??
+          int.tryParse(json['todayTransactions']?.toString() ?? '') ??
           int.tryParse(json['transactionToday']?.toString() ?? '') ??
+          int.tryParse(json['totalTransactions']?.toString() ?? '') ??
           0,
-      omzetHariIni: int.tryParse(json['omzetHariIni']?.toString() ?? '') ??
+      omzetHariIni:
+          int.tryParse(json['omzetHariIni']?.toString() ?? '') ??
+          int.tryParse(json['todayRevenue']?.toString() ?? '') ??
           int.tryParse(json['revenueToday']?.toString() ?? '') ??
+          int.tryParse(json['totalRevenue']?.toString() ?? '') ??
           0,
-      customerHariIni: int.tryParse(json['customerHariIni']?.toString() ?? '') ??
+      customerHariIni:
+          int.tryParse(json['customerHariIni']?.toString() ?? '') ??
+          int.tryParse(json['todayCustomers']?.toString() ?? '') ??
           int.tryParse(json['customersToday']?.toString() ?? '') ??
           0,
-      layananTerjual: int.tryParse(json['layananTerjual']?.toString() ?? '') ??
+      layananTerjual:
+          int.tryParse(json['layananTerjual']?.toString() ?? '') ??
           int.tryParse(json['servicesSold']?.toString() ?? '') ??
           0,
     );
@@ -54,18 +63,21 @@ class DashboardItemDto {
   factory DashboardItemDto.fromJson(Map<String, dynamic> json) {
     return DashboardItemDto(
       name: json['name']?.toString() ?? '',
-      qty: int.tryParse(json['qty']?.toString() ?? '') ?? 0,
+      qty:
+          int.tryParse(json['qty']?.toString() ?? '') ??
+          int.tryParse(json['count']?.toString() ?? '') ??
+          0,
       amount: int.tryParse(json['amount']?.toString() ?? '') ?? 0,
       role: json['role']?.toString(),
     );
   }
 
   Map<String, dynamic> toMap() => {
-        'name': name,
-        'qty': qty,
-        'amount': amount,
-        if (role != null) 'role': role,
-      };
+    'name': name,
+    'qty': qty,
+    'amount': amount,
+    if (role != null) 'role': role,
+  };
 }
 
 class SalesPointDto {
@@ -77,7 +89,10 @@ class SalesPointDto {
   factory SalesPointDto.fromJson(Map<String, dynamic> json) {
     return SalesPointDto(
       label: json['label']?.toString() ?? '',
-      value: int.tryParse(json['value']?.toString() ?? '') ?? 0,
+      value:
+          int.tryParse(json['value']?.toString() ?? '') ??
+          int.tryParse(json['amount']?.toString() ?? '') ??
+          0,
     );
   }
 

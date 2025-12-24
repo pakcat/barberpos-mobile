@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/config/app_config.dart';
@@ -27,6 +28,7 @@ class TransactionController extends GetxController {
 
   final RxList<TransactionItem> transactions = <TransactionItem>[].obs;
   final loading = false.obs;
+  final Rxn<DateTimeRange> filterRange = Rxn<DateTimeRange>();
 
   @override
   void onInit() {
@@ -59,8 +61,19 @@ class TransactionController extends GetxController {
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({DateTimeRange? range}) async {
     loading.value = true;
+    final activeRange = range ?? filterRange.value;
+    if (activeRange != null) {
+      try {
+        final data = await repo.getRange(activeRange.start, activeRange.end);
+        transactions.assignAll(data.map(_map));
+      } catch (_) {
+        transactions.clear();
+      }
+      loading.value = false;
+      return;
+    }
     final remote = _remote;
     if (_config.backend == BackendMode.rest && remote != null) {
       try {
@@ -109,5 +122,24 @@ class TransactionController extends GetxController {
     await repo.upsert(entity);
   }
 
-  Future<void> refreshRemote() async => _load();
+  Future<void> refreshRemote() async => _load(range: filterRange.value);
+
+  Future<void> applyRange(DateTimeRange? range) async {
+    if (range == null) {
+      filterRange.value = null;
+      await _load();
+      return;
+    }
+    final normalized = DateTimeRange(
+      start: DateTime(range.start.year, range.start.month, range.start.day),
+      end: DateTime(range.end.year, range.end.month, range.end.day, 23, 59, 59, 999),
+    );
+    filterRange.value = normalized;
+    await _load(range: normalized);
+  }
+
+  Future<void> clearRange() async {
+    filterRange.value = null;
+    await _load();
+  }
 }

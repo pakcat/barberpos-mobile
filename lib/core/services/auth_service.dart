@@ -8,7 +8,6 @@ import '../config/app_config.dart';
 import '../database/entities/user_entity.dart';
 import '../network/network_service.dart';
 import '../repositories/user_repository.dart';
-import 'activity_log_service.dart';
 import 'session_service.dart';
 
 enum UserRole { admin, manager, staff }
@@ -63,14 +62,12 @@ class AppUser {
 class AuthService extends GetxService {
   AuthService({
     required UserRepository userRepository,
-    required ActivityLogService logs,
     required SessionService session,
     NetworkService? network,
     AuthRemoteDataSource? remote,
     AppConfig? config,
     GoogleSignIn? googleSignIn,
   }) : _userRepo = userRepository,
-       _logs = logs,
        _session = session,
        _remote =
            remote ??
@@ -79,7 +76,6 @@ class AuthService extends GetxService {
        _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   final UserRepository _userRepo;
-  final ActivityLogService _logs;
   final SessionService _session;
   final AuthRemoteDataSource _remote;
   final BackendMode _backend;
@@ -142,13 +138,6 @@ class AuthService extends GetxService {
         username: normalizedEmail,
         pin: password,
       );
-      if (success) {
-        _logs.add(
-          title: 'Login karyawan',
-          message: '$username masuk',
-          actor: username,
-        );
-      }
       return success;
     }
 
@@ -157,7 +146,7 @@ class AuthService extends GetxService {
         username: normalizedEmail,
         password: password,
       );
-      if (remoteOk) return true;
+      return remoteOk;
     }
 
     final found = await _userRepo.findByEmail(normalizedEmail);
@@ -173,11 +162,6 @@ class AuthService extends GetxService {
     _setUser(found);
     await _persistSession(found.id);
     await _persistLocalTokens(userId: found.id);
-    _logs.add(
-      title: 'Login',
-      message: '${found.name} masuk sebagai ${found.role.name}',
-      actor: found.name,
-    );
     return true;
   }
 
@@ -222,13 +206,13 @@ class AuthService extends GetxService {
           await logout();
           return false;
         }
-        _logs.add(
-          title: 'Login Google',
-          message: '$effectiveEmail masuk lewat Google',
-          actor: _currentUser.value?.name ?? 'User',
-        );
         return true;
       }
+    }
+
+    if (_backend == BackendMode.rest) {
+      _lastErrorMessage ??= 'Login Google gagal, coba lagi.';
+      return false;
     }
 
     final existing = await _userRepo.findByEmail(effectiveEmail);
@@ -245,11 +229,6 @@ class AuthService extends GetxService {
       _setUser(entity);
       await _persistSession(entity.id);
       await _persistLocalTokens(userId: entity.id);
-      _logs.add(
-        title: 'Login Google (offline)',
-        message: '$effectiveEmail masuk dengan data tersimpan',
-        actor: _currentUser.value?.name ?? 'User',
-      );
       return true;
     }
 
@@ -295,11 +274,6 @@ class AuthService extends GetxService {
           await logout();
           return false;
         }
-        _logs.add(
-          title: 'Registrasi Google',
-          message: '$effectiveEmail terdaftar melalui Google',
-          actor: dto.user.name,
-        );
         return true;
       }
     }
@@ -330,13 +304,11 @@ class AuthService extends GetxService {
       );
       if (dto != null) {
         await _persistAuthFromApi(dto, fallbackPassword: password);
-        _logs.add(
-          title: 'Registrasi akun',
-          message: '$name mendaftar melalui API',
-          actor: dto.user.name,
-        );
+        _lastErrorMessage = null;
         return true;
       }
+      // When REST mode fails, do NOT fall back to local registration.
+      return false;
     }
 
     final exists = await _userRepo.findByEmail(email);
@@ -354,11 +326,6 @@ class AuthService extends GetxService {
     _setUser(entity);
     await _persistSession(entity.id);
     await _persistLocalTokens(userId: entity.id);
-    _logs.add(
-      title: 'Registrasi akun',
-      message: '$name mendaftar dengan email $email',
-      actor: name,
-    );
     await _session.saveUserId(entity.id);
     return true;
   }
@@ -371,11 +338,6 @@ class AuthService extends GetxService {
       final exists = await _userRepo.findByEmail(email);
       if (exists == null) return false;
     }
-    _logs.add(
-      title: 'Permintaan reset password',
-      message: 'Permintaan reset dikirim ke $email',
-      actor: email,
-    );
     return true;
   }
 
@@ -395,12 +357,6 @@ class AuthService extends GetxService {
     if (_currentUser.value?.email.toLowerCase() == email.toLowerCase()) {
       _setUser(user);
     }
-    _logs.add(
-      title: 'Reset password',
-      message: 'Password diperbarui untuk $email',
-      actor: email,
-      type: ActivityLogType.warning,
-    );
     return true;
   }
 
@@ -422,11 +378,6 @@ class AuthService extends GetxService {
     final savedId = await _userRepo.upsert(entity);
     entity.id = savedId;
     _setUser(entity);
-    _logs.add(
-      title: 'Perbarui profil',
-      message: 'Profil diperbarui oleh ${updated.name}',
-      actor: updated.name,
-    );
     return true;
   }
 
@@ -436,9 +387,39 @@ class AuthService extends GetxService {
   }) async {
     final user = _currentUser.value;
     if (user == null) return false;
-    if (user.password != null && !user.isGoogle) {
-      if (currentPassword != null && currentPassword != user.password)
+    if (_backend == BackendMode.rest) {
+      if (currentPassword == null || currentPassword.isEmpty) {
+        _lastErrorMessage = 'Password lama wajib diisi.';
         return false;
+      }
+      try {
+        await _remote.changePassword(
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+        );
+        final updated = user.copyWith(password: newPassword);
+        final entity = _toEntity(updated);
+        await _userRepo.upsert(entity);
+        _setUser(entity);
+        _lastErrorMessage = null;
+        return true;
+      } on DioException catch (e) {
+        final data = e.response?.data;
+        if (data is Map && data['message'] != null) {
+          _lastErrorMessage = data['message']?.toString();
+        } else {
+          _lastErrorMessage = 'Gagal memperbarui password.';
+        }
+        return false;
+      } catch (_) {
+        _lastErrorMessage = 'Gagal memperbarui password.';
+        return false;
+      }
+    }
+    if (user.password != null && !user.isGoogle) {
+      if (currentPassword != null && currentPassword != user.password) {
+        return false;
+      }
     }
     return resetPassword(email: user.email, newPassword: newPassword);
   }
@@ -447,13 +428,6 @@ class AuthService extends GetxService {
     try {
       await _googleSignIn.signOut();
     } catch (_) {}
-    if (_currentUser.value != null) {
-      _logs.add(
-        title: 'Logout',
-        message: '${_currentUser.value!.name} keluar dari sesi',
-        actor: _currentUser.value!.name,
-      );
-    }
     _currentUser.value = null;
     await _session.clear();
   }
@@ -567,11 +541,6 @@ class AuthService extends GetxService {
       final dto = await _remote.login(email: username, password: password);
       if (dto.token.isEmpty) return false;
       await _persistAuthFromApi(dto, fallbackPassword: password);
-      _logs.add(
-        title: 'Login',
-        message: '${dto.user.name} masuk melalui API',
-        actor: dto.user.name,
-      );
       _lastErrorMessage = null;
       return true;
     } on DioException catch (e) {
@@ -605,11 +574,6 @@ class AuthService extends GetxService {
       );
       if (dto.token.isEmpty) return false;
       await _persistAuthFromApi(dto, fallbackPassword: pin);
-      _logs.add(
-        title: 'Login karyawan',
-        message: '${dto.user.name} masuk melalui API',
-        actor: dto.user.name,
-      );
       _lastErrorMessage = null;
       return true;
     } on DioException catch (e) {
@@ -692,8 +656,18 @@ class AuthService extends GetxService {
         region: region,
         role: role.name,
       );
+      _lastErrorMessage = null;
       return dto.token.isEmpty ? null : dto;
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        _lastErrorMessage = data['message']?.toString();
+      } else {
+        _lastErrorMessage = 'Registrasi gagal, periksa data Anda.';
+      }
+      return null;
     } catch (_) {
+      _lastErrorMessage = 'Registrasi gagal, periksa data Anda.';
       return null;
     }
   }

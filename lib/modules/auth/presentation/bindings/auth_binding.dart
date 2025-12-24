@@ -33,7 +33,6 @@ class AuthBinding extends Bindings {
     Get.put<AuthService>(
       AuthService(
         userRepository: Get.find<UserRepository>(),
-        logs: Get.find(),
         session: Get.find<SessionService>(),
         network: network,
         config: Get.find<AppConfig>(),

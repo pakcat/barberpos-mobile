@@ -96,6 +96,16 @@ class AuthRemoteDataSource {
     );
   }
 
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _dio.post(
+      '/auth/change-password',
+      data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+    );
+  }
+
   Future<AuthResponseDto> refreshToken(String refreshToken) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/auth/refresh',

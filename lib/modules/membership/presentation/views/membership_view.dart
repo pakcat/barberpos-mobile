@@ -37,7 +37,8 @@ class MembershipView extends GetView<MembershipController> {
             children: [
               const AppSectionHeader(
                 title: 'Kuota Membership',
-                subtitle: 'Pantau kuota transaksi per bulan dan top-up tambahan',
+                subtitle:
+                    'Pantau kuota transaksi per bulan dan top-up tambahan',
               ),
               const SizedBox(height: AppDimens.spacingMd),
               Obx(() {
@@ -48,7 +49,9 @@ class MembershipView extends GetView<MembershipController> {
                     children: [
                       _QuotaCard(
                         title: 'Sisa Kuota',
-                        value: controller.formatNumber(controller.remainingQuota),
+                        value: controller.formatNumber(
+                          controller.remainingQuota,
+                        ),
                         caption: 'Kuota yang bisa dipakai hari ini',
                         accentColor: AppColors.green500,
                         progress: controller.usageProgress,
@@ -75,20 +78,25 @@ class MembershipView extends GetView<MembershipController> {
                     ),
                     _QuotaCard(
                       title: 'Dipakai Bulan Ini',
-                      value: controller.formatNumber(controller.usedQuota.value),
-                      caption: 'Dari total ${controller.formatNumber(controller.totalQuota)}',
+                      value: controller.formatNumber(
+                        controller.usedQuota.value,
+                      ),
+                      caption:
+                          'Dari total ${controller.formatNumber(controller.totalQuota)}',
                       accentColor: AppColors.orange500,
                       progress: controller.usageProgress,
                       invertProgress: true,
                     ),
                     _QuotaCard(
                       title: 'Kuota Gratis',
-                      value: controller.formatNumber(controller.freeQuotaMonthly),
+                      value: controller.formatNumber(
+                        controller.freeQuota.value,
+                      ),
                       caption: 'Reset setiap awal bulan',
                       accentColor: AppColors.blue500,
                       progress: controller.totalQuota == 0
                           ? 0
-                          : controller.freeQuotaMonthly / controller.totalQuota,
+                          : controller.freeQuota.value / controller.totalQuota,
                     ),
                     _QuotaCard(
                       title: 'Kuota Top-up',
@@ -116,7 +124,10 @@ class MembershipView extends GetView<MembershipController> {
                       trailing: Chip(
                         label: Text(
                           'Total top-up: ${controller.formatNumber(controller.topupQuota)}',
-                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         backgroundColor: AppColors.orange500,
                       ),
@@ -131,7 +142,9 @@ class MembershipView extends GetView<MembershipController> {
                             controller: controller.amountController,
                             hint: 'Nominal kuota (cth: 250)',
                             keyboardType: TextInputType.number,
-                            prefix: const Icon(Icons.confirmation_number_rounded),
+                            prefix: const Icon(
+                              Icons.confirmation_number_rounded,
+                            ),
                           ),
                           const SizedBox(height: AppDimens.spacingSm),
                           AppInputField(
@@ -148,9 +161,13 @@ class MembershipView extends GetView<MembershipController> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.orange500,
                                 foregroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(vertical: AppDimens.spacingMd),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppDimens.spacingMd,
+                                ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+                                  borderRadius: BorderRadius.circular(
+                                    AppDimens.cornerRadius,
+                                  ),
                                 ),
                               ),
                               icon: const Icon(Icons.add_card_rounded),
@@ -180,7 +197,10 @@ class MembershipView extends GetView<MembershipController> {
                     ),
                     child: Text(
                       '${controller.topups.length} entri',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -190,14 +210,16 @@ class MembershipView extends GetView<MembershipController> {
                 if (controller.topups.isEmpty) {
                   return const AppEmptyState(
                     title: 'Belum ada top-up',
-                    message: 'Manager bisa menambahkan kuota ekstra kapan saja.',
+                    message:
+                        'Manager bisa menambahkan kuota ekstra kapan saja.',
                   );
                 }
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: controller.topups.length,
-                  separatorBuilder: (_, index) => const SizedBox(height: AppDimens.spacingSm),
+                  separatorBuilder: (_, index) =>
+                      const SizedBox(height: AppDimens.spacingSm),
                   itemBuilder: (context, index) {
                     final topup = controller.topups[index];
                     return _TopupTile(
@@ -240,7 +262,10 @@ class _QuotaCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [accentColor.withValues(alpha: 0.2), AppColors.grey800.withValues(alpha: 0.5)],
+            colors: [
+              accentColor.withValues(alpha: 0.2),
+              AppColors.grey800.withValues(alpha: 0.5),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -264,9 +289,16 @@ class _QuotaCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  Icon(Icons.pie_chart_rounded, color: accentColor.withValues(alpha: 0.8), size: 20),
+                  Icon(
+                    Icons.pie_chart_rounded,
+                    color: accentColor.withValues(alpha: 0.8),
+                    size: 20,
+                  ),
                 ],
               ),
               const SizedBox(height: AppDimens.spacingLg),
@@ -278,7 +310,13 @@ class _QuotaCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppDimens.spacingXs),
-              Text(caption, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+              Text(
+                caption,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 12,
+                ),
+              ),
               if (progress != null) ...[
                 const SizedBox(height: AppDimens.spacingMd),
                 Stack(
@@ -300,7 +338,10 @@ class _QuotaCard extends StatelessWidget {
                           color: accentColor,
                           borderRadius: BorderRadius.circular(999),
                           boxShadow: [
-                            BoxShadow(color: accentColor.withValues(alpha: 0.5), blurRadius: 6),
+                            BoxShadow(
+                              color: accentColor.withValues(alpha: 0.5),
+                              blurRadius: 6,
+                            ),
                           ],
                         ),
                       ),
@@ -342,7 +383,10 @@ class _TopupTile extends StatelessWidget {
               color: AppColors.orange500.withAlpha((0.16 * 255).round()),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.workspace_premium_rounded, color: AppColors.orange500),
+            child: const Icon(
+              Icons.workspace_premium_rounded,
+              color: AppColors.orange500,
+            ),
           ),
           const SizedBox(width: AppDimens.spacingMd),
           Expanded(
@@ -361,11 +405,18 @@ class _TopupTile extends StatelessWidget {
                 const SizedBox(height: AppDimens.spacingXs),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today_rounded, color: Colors.white54, size: 14),
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      color: Colors.white54,
+                      size: 14,
+                    ),
                     const SizedBox(width: AppDimens.spacingXs),
                     Text(
                       formattedDate,
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),

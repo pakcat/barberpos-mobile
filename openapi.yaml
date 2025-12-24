@@ -59,6 +59,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
+  /auth/staff:
+    post:
+      summary: Login staff/employee (by phone or email)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffLoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
   /auth/refresh:
     post:
       summary: Refresh access token
@@ -106,6 +122,25 @@ paths:
                 token:
                   type: string
                 password:
+                  type: string
+      responses:
+        '200':
+          description: OK
+  /auth/change-password:
+    post:
+      summary: Change password for current user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
                   type: string
       responses:
         '200':
@@ -268,9 +303,40 @@ paths:
       summary: List transactions
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            example: 2025-01-01
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            example: 2025-01-31
       responses:
         '200':
           description: List
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    code: { type: string }
+                    date: { type: string }
+                    time: { type: string }
+                    amount: { type: integer }
+                    paymentMethod: { type: string }
+                    status: { type: string }
+                    stylist: { type: string }
+                    stylistId: { type: integer, format: int64 }
+                    items:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/OrderRequest'
   /payments/qris:
     post:
       summary: Create QRIS payment intent (dummy)
@@ -364,6 +430,18 @@ paths:
       responses:
         '200':
           description: Summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaksiHariIni: { type: integer }
+                  omzetHariIni: { type: integer }
+                  customerHariIni: { type: integer }
+                  layananTerjual: { type: integer }
+                  totalRevenue: { type: integer }
+                  totalTransactions: { type: integer }
+                  todayRevenue: { type: integer }
   /dashboard/top-services:
     get:
       summary: Top services
@@ -372,6 +450,16 @@ paths:
       responses:
         '200':
           description: List
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    amount: { type: integer }
+                    qty: { type: integer }
   /dashboard/top-staff:
     get:
       summary: Top staff
@@ -380,6 +468,16 @@ paths:
       responses:
         '200':
           description: List
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    amount: { type: integer }
+                    qty: { type: integer }
   /dashboard/sales:
     get:
       summary: Sales time series
@@ -390,10 +488,19 @@ paths:
           name: range
           schema:
             type: string
-            enum: [7d, 30d]
+            enum: [1d, 7d, 30d]
       responses:
         '200':
           description: Series
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    label: { type: string }
+                    value: { type: integer }
   /closing/summary:
     get:
       summary: Closing summary (today)
@@ -462,6 +569,17 @@ paths:
       summary: List finance entries
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            example: 2025-01-01
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            example: 2025-01-31
       responses:
         '200':
           description: List
@@ -486,6 +604,10 @@ paths:
       responses:
         '200':
           description: State
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipState'
     put:
       summary: Update membership state
       security:
@@ -502,6 +624,10 @@ paths:
       responses:
         '200':
           description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipState'
   /membership/topups:
     get:
       summary: List membership topups
@@ -572,6 +698,11 @@ paths:
           required: true
           schema:
             type: integer
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
       responses:
         '200':
           description: List
@@ -599,6 +730,7 @@ paths:
                 role: { type: string }
                 phone: { type: string }
                 email: { type: string }
+                pin: { type: string, description: "Set/replace PIN (store as hash)" }
                 joinDate: { type: string, example: 2025-01-01 }
                 commission: { type: number, format: float }
                 active: { type: boolean }
@@ -638,6 +770,38 @@ paths:
       responses:
         '200':
           description: Saved
+  /notifications:
+    get:
+      summary: List notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List
+    post:
+      summary: Create notification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                message:
+                  type: string
+                type:
+                  type: string
+                  enum: [info, warning, error]
+                timestamp:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Saved
   /posts/1:
     get:
       summary: Welcome placeholder
@@ -673,6 +837,7 @@ components:
         phone: { type: string }
         email: { type: string }
         name: { type: string }
+        pin: { type: string, description: "Employee PIN" }
     GoogleLoginRequest:
       type: object
       properties:
@@ -742,8 +907,16 @@ components:
         change: { type: integer }
         paymentMethod: { type: string }
         stylist: { type: string }
+        stylistId: { type: integer, format: int64 }
         customer: { type: string }
         shiftId: { type: string }
+    MembershipState:
+      type: object
+      properties:
+        usedQuota: { type: integer }
+        freeUsed: { type: integer }
+        freeQuota: { type: integer, example: 1000 }
+        topupBalance: { type: integer }
     Settings:
       type: object
       properties:

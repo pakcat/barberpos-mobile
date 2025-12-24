@@ -13,14 +13,15 @@ class ClosingController extends GetxController {
     ClosingRepository? repository,
     ClosingRemoteDataSource? remote,
     AppConfig? config,
-  })  : auth = Get.find<AuthService>(),
-        logs = Get.find<ActivityLogService>(),
-        repo = repository ?? Get.find<ClosingRepository>(),
-        _config = config ?? Get.find<AppConfig>(),
-        _remote = remote ??
-            (Get.isRegistered<NetworkService>()
-                ? ClosingRemoteDataSource(Get.find<NetworkService>().dio)
-                : null);
+  }) : auth = Get.find<AuthService>(),
+       logs = Get.find<ActivityLogService>(),
+       repo = repository ?? Get.find<ClosingRepository>(),
+       _config = config ?? Get.find<AppConfig>(),
+       _remote =
+           remote ??
+           (Get.isRegistered<NetworkService>()
+               ? ClosingRemoteDataSource(Get.find<NetworkService>().dio)
+               : null);
 
   final AuthService auth;
   final ActivityLogService logs;
@@ -87,14 +88,12 @@ class ClosingController extends GetxController {
     if (_config.backend == BackendMode.rest && remote != null) {
       try {
         await remote.submitClosing({
-          'tanggal': entry.tanggal.toIso8601String(),
+          'tanggal': entry.tanggal.toIso8601String().split('T').first,
           'shift': entry.shift,
           'karyawan': entry.karyawan,
-          'operator': entry.operatorName,
+          'operatorName': entry.operatorName,
           'shiftId': entry.shiftId,
-          'totalCash': totalCash.value,
-          'totalNonCash': totalNonCash.value,
-          'totalCard': totalCard.value,
+          'total': entry.total,
           'catatan': note.value,
           'fisik': physicalCash.value,
           'status': entry.status,

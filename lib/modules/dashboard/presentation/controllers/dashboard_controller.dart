@@ -7,7 +7,11 @@ class DashboardController extends GetxController {
   DashboardController({
     DashboardRemoteDataSource? remote,
     NetworkService? network,
-  }) : _remote = remote ?? DashboardRemoteDataSource((network ?? Get.find<NetworkService>()).dio);
+  }) : _remote =
+           remote ??
+           DashboardRemoteDataSource(
+             (network ?? Get.find<NetworkService>()).dio,
+           );
 
   final summary = <String, dynamic>{}.obs;
   final topServices = <Map<String, dynamic>>[].obs;
@@ -36,7 +40,7 @@ class DashboardController extends GetxController {
       final staff = await _remote.fetchTopStaff();
       topStaff.assignAll(staff.map((e) => e.toMap()));
 
-      final sales = await _remote.fetchSalesSeries(range: range);
+      final sales = await _remote.fetchSalesSeries(range: _rangeParam(range));
       salesSeries.assignAll(sales.map((e) => e.toMap()));
     } catch (_) {
       summary.clear();
@@ -46,6 +50,19 @@ class DashboardController extends GetxController {
     } finally {
       filterRange.value = range;
       loading.value = false;
+    }
+  }
+
+  String _rangeParam(String label) {
+    switch (label.toLowerCase()) {
+      case 'hari ini':
+        return '1d';
+      case 'minggu ini':
+        return '7d';
+      case 'bulan ini':
+        return '30d';
+      default:
+        return '30d';
     }
   }
 }
