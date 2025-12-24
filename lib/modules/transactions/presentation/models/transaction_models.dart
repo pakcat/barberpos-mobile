@@ -1,4 +1,4 @@
-enum TransactionStatus { paid, refund }
+enum TransactionStatus { paid, refund, pending }
 
 class TransactionItem {
   const TransactionItem({

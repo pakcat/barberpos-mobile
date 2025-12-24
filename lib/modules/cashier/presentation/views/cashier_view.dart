@@ -5,6 +5,7 @@ import '../../../../core/values/app_colors.dart';
 import '../../../../core/values/app_dimens.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_side_drawer.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../routes/app_routes.dart';
 import '../controllers/cashier_controller.dart';
 import '../models/cashier_item.dart';
@@ -16,6 +17,7 @@ class CashierView extends GetView<CashierController> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Get.find<AuthService>();
     return LayoutBuilder(
       builder: (context, constraints) {
         final isTablet = constraints.maxWidth >= AppDimens.tabletBreakpoint;
@@ -37,7 +39,7 @@ class CashierView extends GetView<CashierController> {
           actions: [
             IconButton(
               icon: const Icon(Icons.task_alt_rounded),
-              tooltip: 'Check-in Stylist',
+              tooltip: auth.isStaffOnly ? 'Absen (Check-in)' : 'Check-in Stylist',
               onPressed: controller.checkInSelectedStylist,
             ),
             IconButton(

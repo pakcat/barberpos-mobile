@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 
 import '../../domain/entities/settings_profile.dart';
 
@@ -59,5 +62,39 @@ class SettingsRemoteDataSource {
       autoBackup: data['autoBackup'] == true,
       cashierPin: data['cashierPin'] == true,
     );
+  }
+
+  Future<Uint8List?> loadQrisImage() async {
+    try {
+      final res = await _dio.get<List<int>>(
+        '/settings/qris',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = res.data ?? <int>[];
+      if (bytes.isEmpty) return null;
+      return Uint8List.fromList(bytes);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  Future<void> saveQrisImage({
+    required Uint8List bytes,
+    required String filename,
+    required String mimeType,
+  }) async {
+    final form = FormData.fromMap({
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: filename,
+        contentType: MediaType.parse(mimeType),
+      ),
+    });
+    await _dio.post<Map<String, dynamic>>('/settings/qris', data: form);
+  }
+
+  Future<void> clearQrisImage() async {
+    await _dio.delete<Map<String, dynamic>>('/settings/qris');
   }
 }

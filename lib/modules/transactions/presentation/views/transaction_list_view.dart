@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_side_drawer.dart';
+import '../../../../core/utils/local_time.dart';
 import '../../../../routes/app_routes.dart';
 import '../controllers/transaction_controller.dart';
 import '../models/transaction_models.dart';
@@ -135,7 +136,8 @@ class TransactionListView extends GetView<TransactionController> {
   List<MapEntry<DateTime, List<TransactionItem>>> _groupByDate(List<TransactionItem> items) {
     final map = <DateTime, List<TransactionItem>>{};
     for (final tx in items) {
-      final key = DateTime(tx.date.year, tx.date.month, tx.date.day);
+      final d = asLocalTime(tx.date);
+      final key = DateTime(d.year, d.month, d.day);
       map.putIfAbsent(key, () => []).add(tx);
     }
     final entries = map.entries.toList()..sort((a, b) => b.key.compareTo(a.key));
@@ -143,6 +145,7 @@ class TransactionListView extends GetView<TransactionController> {
   }
 
   String _formatDate(DateTime date) {
+    date = asLocalTime(date);
     const months = [
       '',
       'Januari',
@@ -162,6 +165,7 @@ class TransactionListView extends GetView<TransactionController> {
   }
 
   String _formatShortDate(DateTime date) {
+    date = asLocalTime(date);
     const months = [
       '',
       'Januari',
@@ -265,6 +269,7 @@ class _TransactionTile extends StatelessWidget {
   }
 
   String _formatTime(DateTime dt) {
+    dt = asLocalTime(dt);
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
@@ -449,8 +454,11 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPending = status == TransactionStatus.pending;
     final isPaid = status == TransactionStatus.paid;
-    final color = isPaid ? AppColors.green500 : AppColors.red500;
+    final color = isPending
+        ? AppColors.orange500
+        : (isPaid ? AppColors.green500 : AppColors.red500);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimens.spacingSm,
@@ -461,7 +469,7 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        isPaid ? 'Lunas' : 'Refund',
+        isPending ? 'Pending' : (isPaid ? 'Lunas' : 'Refund'),
         style: TextStyle(color: color, fontWeight: FontWeight.w600),
       ),
     );

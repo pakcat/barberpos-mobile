@@ -60,6 +60,28 @@ class TransactionRepository {
     });
   }
 
+  Future<void> markSyncedPending({
+    required String pendingCode,
+    required String serverCode,
+  }) async {
+    if (pendingCode == serverCode) return;
+    final existing = await _isar.transactionEntitys.filter().codeEqualTo(pendingCode).findFirst();
+    if (existing == null) return;
+    await _isar.writeTxn(() async {
+      final conflict = await _isar.transactionEntitys.filter().codeEqualTo(serverCode).findFirst();
+      if (conflict != null && conflict.id != existing.id) {
+        await _isar.transactionEntitys.delete(existing.id);
+        return;
+      }
+      existing
+        ..code = serverCode
+        ..status = TransactionStatusEntity.paid
+        ..refundedAt = null
+        ..refundNote = '';
+      await _isar.transactionEntitys.put(existing);
+    });
+  }
+
   Future<bool> refundByCode({
     required String code,
     String? note,

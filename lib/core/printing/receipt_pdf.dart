@@ -2,6 +2,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter/foundation.dart';
 
+import '../utils/local_time.dart';
 import '../../modules/transactions/presentation/models/transaction_models.dart';
 
 class ReceiptPdf {
@@ -90,10 +91,12 @@ class ReceiptPdf {
   }
 
   static String _formatDate(DateTime d) {
+    d = asLocalTime(d);
     return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
   static String _formatDateTime(DateTime d) {
+    d = asLocalTime(d);
     return '${_formatDate(d)} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   }
 }

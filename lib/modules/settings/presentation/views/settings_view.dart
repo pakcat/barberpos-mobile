@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/printing/thermal_printer_service.dart';
@@ -9,6 +8,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_side_drawer.dart';
+import '../../../../routes/app_routes.dart';
 import '../controllers/settings_controller.dart';
 
 class SettingsView extends GetView<SettingsController> {
@@ -44,13 +44,20 @@ class SettingsView extends GetView<SettingsController> {
                     leading: CircleAvatar(
                       backgroundColor: AppColors.orange500,
                       child: Text(
-                        controller.user?.name.substring(0, 1).toUpperCase() ?? 'U',
-                        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                        controller.user?.name.substring(0, 1).toUpperCase() ??
+                            'U',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     title: Text(
                       controller.user?.name ?? 'Pengguna',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     subtitle: Text(
                       '${controller.user?.email ?? '-'} • ${controller.user?.role.name.capitalizeFirst}',
@@ -62,7 +69,11 @@ class SettingsView extends GetView<SettingsController> {
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Row(
                         children: [
-                          const Icon(Icons.phone_iphone_rounded, size: 16, color: Colors.white54),
+                          const Icon(
+                            Icons.phone_iphone_rounded,
+                            size: 16,
+                            color: Colors.white54,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             controller.user!.phone,
@@ -76,7 +87,11 @@ class SettingsView extends GetView<SettingsController> {
                       padding: const EdgeInsets.only(top: 4.0),
                       child: Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 16, color: Colors.white54),
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 16,
+                            color: Colors.white54,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -144,8 +159,15 @@ class SettingsView extends GetView<SettingsController> {
                   const SizedBox(height: AppDimens.spacingSm),
                   Obx(
                     () => DropdownButtonFormField<String>(
-                      key: ValueKey<String>('paperSize:${controller.paperSize.value}'),
-                      initialValue: const {'58mm', '80mm', 'A4'}.contains(controller.paperSize.value)
+                      key: ValueKey<String>(
+                        'paperSize:${controller.paperSize.value}',
+                      ),
+                      initialValue:
+                          const {
+                            '58mm',
+                            '80mm',
+                            'A4',
+                          }.contains(controller.paperSize.value)
                           ? controller.paperSize.value
                           : '58mm',
                       dropdownColor: AppColors.grey800,
@@ -153,26 +175,50 @@ class SettingsView extends GetView<SettingsController> {
                       decoration: InputDecoration(
                         labelText: 'Ukuran Kertas',
                         labelStyle: const TextStyle(color: Colors.white54),
-                        prefixIcon: const Icon(Icons.receipt_rounded, color: Colors.white54),
+                        prefixIcon: const Icon(
+                          Icons.receipt_rounded,
+                          color: Colors.white54,
+                        ),
                         filled: true,
                         fillColor: AppColors.grey800,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
-                          borderSide: const BorderSide(color: AppColors.grey700),
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.cornerRadius,
+                          ),
+                          borderSide: const BorderSide(
+                            color: AppColors.grey700,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
-                          borderSide: const BorderSide(color: AppColors.grey700),
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.cornerRadius,
+                          ),
+                          borderSide: const BorderSide(
+                            color: AppColors.grey700,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
-                          borderSide: const BorderSide(color: AppColors.orange500),
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.cornerRadius,
+                          ),
+                          borderSide: const BorderSide(
+                            color: AppColors.orange500,
+                          ),
                         ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: '58mm', child: Text('58mm (Thermal Kecil)')),
-                        DropdownMenuItem(value: '80mm', child: Text('80mm (Thermal Besar)')),
-                        DropdownMenuItem(value: 'A4', child: Text('A4 (Standar)')),
+                        DropdownMenuItem(
+                          value: '58mm',
+                          child: Text('58mm (Thermal Kecil)'),
+                        ),
+                        DropdownMenuItem(
+                          value: '80mm',
+                          child: Text('80mm (Thermal Besar)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'A4',
+                          child: Text('A4 (Standar)'),
+                        ),
                       ],
                       onChanged: controller.setPaperSize,
                     ),
@@ -180,8 +226,15 @@ class SettingsView extends GetView<SettingsController> {
                   const SizedBox(height: AppDimens.spacingSm),
                   Obx(
                     () => DropdownButtonFormField<String>(
-                      key: ValueKey<String>('printerType:${controller.printerType.value}'),
-                      initialValue: const {'system', 'lan', 'bluetooth'}.contains(controller.printerType.value)
+                      key: ValueKey<String>(
+                        'printerType:${controller.printerType.value}',
+                      ),
+                      initialValue:
+                          const {
+                            'system',
+                            'lan',
+                            'bluetooth',
+                          }.contains(controller.printerType.value)
                           ? controller.printerType.value
                           : 'system',
                       dropdownColor: AppColors.grey800,
@@ -189,26 +242,50 @@ class SettingsView extends GetView<SettingsController> {
                       decoration: InputDecoration(
                         labelText: 'Tipe Printer',
                         labelStyle: const TextStyle(color: Colors.white54),
-                        prefixIcon: const Icon(Icons.print_rounded, color: Colors.white54),
+                        prefixIcon: const Icon(
+                          Icons.print_rounded,
+                          color: Colors.white54,
+                        ),
                         filled: true,
                         fillColor: AppColors.grey800,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
-                          borderSide: const BorderSide(color: AppColors.grey700),
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.cornerRadius,
+                          ),
+                          borderSide: const BorderSide(
+                            color: AppColors.grey700,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
-                          borderSide: const BorderSide(color: AppColors.grey700),
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.cornerRadius,
+                          ),
+                          borderSide: const BorderSide(
+                            color: AppColors.grey700,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
-                          borderSide: const BorderSide(color: AppColors.orange500),
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.cornerRadius,
+                          ),
+                          borderSide: const BorderSide(
+                            color: AppColors.orange500,
+                          ),
                         ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'system', child: Text('System Print (Dialog OS)')),
-                        DropdownMenuItem(value: 'lan', child: Text('Thermal LAN (TCP)')),
-                        DropdownMenuItem(value: 'bluetooth', child: Text('Thermal Bluetooth (SPP)')),
+                        DropdownMenuItem(
+                          value: 'system',
+                          child: Text('System Print (Dialog OS)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'lan',
+                          child: Text('Thermal LAN (TCP)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'bluetooth',
+                          child: Text('Thermal Bluetooth (SPP)'),
+                        ),
                       ],
                       onChanged: controller.setPrinterType,
                     ),
@@ -230,7 +307,8 @@ class SettingsView extends GetView<SettingsController> {
                             hint: 'Port (default 9100)',
                             keyboardType: TextInputType.number,
                             prefix: const Icon(Icons.settings_ethernet_rounded),
-                            onChanged: (v) => controller.printerPort.value = int.tryParse(v.trim()) ?? 9100,
+                            onChanged: (v) => controller.printerPort.value =
+                                int.tryParse(v.trim()) ?? 9100,
                           ),
                         ],
                       );
@@ -248,9 +326,12 @@ class SettingsView extends GetView<SettingsController> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: TextButton.icon(
-                              onPressed: () => _pickBluetoothDevice(context, controller),
-                              icon: const Icon(Icons.search_rounded, color: Colors.white70),
-                              label: const Text('Pilih dari perangkat paired', style: TextStyle(color: Colors.white70)),
+                              onPressed: () => Get.toNamed(Routes.bluetoothPrinter),
+                              icon: const Icon(Icons.settings_bluetooth_rounded, color: Colors.white70),
+                              label: const Text(
+                                'Buka pengaturan Bluetooth printer',
+                                style: TextStyle(color: Colors.white70),
+                              ),
                             ),
                           ),
                         ],
@@ -270,9 +351,17 @@ class SettingsView extends GetView<SettingsController> {
                           Get.snackbar('Gagal print', e.toString());
                         }
                       },
-                      icon: const Icon(Icons.receipt_long_rounded, color: Colors.white),
-                      label: const Text('Test print thermal', style: TextStyle(color: Colors.white)),
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.grey700)),
+                      icon: const Icon(
+                        Icons.receipt_long_rounded,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Test print thermal',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.grey700),
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppDimens.spacingSm),
@@ -296,7 +385,10 @@ class SettingsView extends GetView<SettingsController> {
             ),
             const SizedBox(height: AppDimens.spacingLg),
 
-            _SectionHeader(title: 'Preferensi', icon: Icons.settings_suggest_rounded),
+            _SectionHeader(
+              title: 'Preferensi',
+              icon: Icons.settings_suggest_rounded,
+            ),
             const SizedBox(height: AppDimens.spacingSm),
             AppCard(
               backgroundColor: AppColors.grey800,
@@ -331,6 +423,107 @@ class SettingsView extends GetView<SettingsController> {
             ),
             const SizedBox(height: AppDimens.spacingLg),
 
+            _SectionHeader(
+              title: 'Pembayaran QRIS',
+              icon: Icons.qr_code_rounded,
+            ),
+            const SizedBox(height: AppDimens.spacingSm),
+            AppCard(
+              backgroundColor: AppColors.grey800,
+              borderColor: AppColors.grey700,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Upload foto QRIS statis (sementara belum terhubung Midtrans/Xendit).',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: AppDimens.spacingSm),
+                  Obx(() {
+                    if (controller.qrisLoading.value) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(AppDimens.spacingMd),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    final bytes = controller.qrisImage.value;
+                    if (bytes == null) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppDimens.spacingMd),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey900,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.cornerRadius,
+                          ),
+                          border: Border.all(color: AppColors.grey700),
+                        ),
+                        child: const Text(
+                          'Belum ada foto QRIS. Upload untuk menampilkan di kasir.',
+                          style: TextStyle(color: Colors.white60),
+                        ),
+                      );
+                    }
+                    return Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(AppDimens.spacingSm),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.cornerRadius,
+                          ),
+                        ),
+                        child: Image.memory(
+                          bytes,
+                          width: 240,
+                          height: 240,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: AppDimens.spacingSm),
+                  Obx(
+                    () => Wrap(
+                      spacing: AppDimens.spacingSm,
+                      runSpacing: AppDimens.spacingSm,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: controller.qrisUploading.value
+                              ? null
+                              : controller.pickAndUploadQrisFromGallery,
+                          icon: controller.qrisUploading.value
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.photo_library_rounded),
+                          label: const Text('Upload dari galeri'),
+                        ),
+                        if (controller.qrisImage.value != null)
+                          OutlinedButton.icon(
+                            onPressed: controller.qrisUploading.value
+                                ? null
+                                : controller.clearQris,
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            label: const Text('Hapus'),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.grey700),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimens.spacingLg),
+
             _SectionHeader(title: 'Keamanan', icon: Icons.security_rounded),
             const SizedBox(height: AppDimens.spacingSm),
             AppCard(
@@ -357,7 +550,10 @@ class SettingsView extends GetView<SettingsController> {
               ),
             ),
             const SizedBox(height: AppDimens.spacingLg),
-            _SectionHeader(title: 'Reset Password', icon: Icons.lock_reset_rounded),
+            _SectionHeader(
+              title: 'Reset Password',
+              icon: Icons.lock_reset_rounded,
+            ),
             const SizedBox(height: AppDimens.spacingSm),
             AppCard(
               backgroundColor: AppColors.grey800,
@@ -418,7 +614,9 @@ class SettingsView extends GetView<SettingsController> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.orange500,
                         foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: AppDimens.spacingMd),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppDimens.spacingMd,
+                        ),
                       ),
                       icon: const Icon(Icons.save_alt_rounded),
                       label: const Text('Perbarui Password'),
@@ -436,7 +634,9 @@ class SettingsView extends GetView<SettingsController> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.orange500,
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: AppDimens.spacingMd),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppDimens.spacingMd,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
                   ),
@@ -454,52 +654,6 @@ class SettingsView extends GetView<SettingsController> {
       ),
     );
   }
-
-  Future<void> _pickBluetoothDevice(BuildContext context, SettingsController controller) async {
-    try {
-      final devices = await FlutterBluetoothSerial.instance.getBondedDevices();
-      if (devices.isEmpty) {
-        Get.snackbar('Bluetooth', 'Tidak ada perangkat paired');
-        return;
-      }
-
-      await Get.bottomSheet<void>(
-        Container(
-          padding: const EdgeInsets.all(AppDimens.spacingLg),
-          decoration: const BoxDecoration(
-            color: AppColors.grey900,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimens.cornerRadius)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Pilih printer Bluetooth', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                const SizedBox(height: AppDimens.spacingSm),
-                ...devices.map((d) {
-                  final name = (d.name ?? 'Bluetooth Device').trim();
-                  return ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.bluetooth_rounded, color: Colors.white70),
-                    title: Text(name, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(d.address, style: const TextStyle(color: Colors.white54)),
-                    onTap: () {
-                      controller.printerMacController.text = d.address;
-                      controller.printerMac.value = d.address;
-                      Get.back();
-                    },
-                  );
-                }),
-              ],
-            ),
-          ),
-        ),
-      );
-    } catch (e) {
-      Get.snackbar('Bluetooth', e.toString());
-    }
-  }
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -516,7 +670,11 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: AppDimens.spacingSm),
         Text(
           title,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -524,7 +682,11 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _SwitchTile extends StatelessWidget {
-  const _SwitchTile({required this.label, required this.value, required this.onChanged});
+  const _SwitchTile({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   final String label;
   final bool value;

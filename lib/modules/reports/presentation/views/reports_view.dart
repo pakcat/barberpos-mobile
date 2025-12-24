@@ -7,6 +7,7 @@ import '../../../../core/values/app_dimens.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_side_drawer.dart';
+import '../../../../core/utils/local_time.dart';
 import '../../../../routes/app_routes.dart';
 import '../controllers/reports_controller.dart';
 import '../models/report_models.dart';
@@ -28,20 +29,126 @@ class ReportsView extends GetView<ReportsController> {
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth > 600) {
-            return _TabletLayout(controller: controller);
-          }
-          return _MobileLayout(controller: controller);
-        },
+      actions: [
+        IconButton(
+          tooltip: 'Tambah pemasukan/pengeluaran',
+          onPressed: () => _showAddCashflowSheet(),
+          icon: const Icon(Icons.add_circle_outline_rounded),
+        ),
+      ],
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.orange500,
+        foregroundColor: Colors.black,
+        onPressed: () => _showAddCashflowSheet(),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Tambah arus kas'),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      body: DefaultTabController(
+        length: 5,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _FilterSection(controller: controller),
+            const SizedBox(height: AppDimens.spacingMd),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.grey800.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+                border: Border.all(color: AppColors.grey700),
+              ),
+              child: const TabBar(
+                isScrollable: true,
+                labelColor: Colors.black,
+                unselectedLabelColor: Colors.white70,
+                indicator: BoxDecoration(
+                  color: AppColors.orange500,
+                  borderRadius: BorderRadius.all(Radius.circular(AppDimens.cornerRadius)),
+                ),
+                tabs: [
+                  Tab(text: 'Ringkasan'),
+                  Tab(text: 'Arus Kas'),
+                  Tab(text: 'Karyawan'),
+                  Tab(text: 'Pelanggan'),
+                  Tab(text: 'Transaksi'),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimens.spacingMd),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _OverviewTab(controller: controller),
+                  _CashflowTab(controller: controller),
+                  _StaffTab(controller: controller),
+                  _CustomersTab(controller: controller),
+                  _TransactionsTab(controller: controller),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddCashflowSheet() {
+    Get.bottomSheet<void>(
+      Container(
+        padding: const EdgeInsets.all(AppDimens.spacingLg),
+        decoration: const BoxDecoration(
+          color: AppColors.grey900,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimens.cornerRadius)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Tambah arus kas',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+              const SizedBox(height: AppDimens.spacingSm),
+              const Text(
+                'Catat pemasukan atau pengeluaran non-transaksi.',
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: AppDimens.spacingLg),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.trending_up_rounded, color: AppColors.green500),
+                title: const Text('Pemasukan (Revenue)', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('Contoh: top up kas, penjualan lainnya', style: TextStyle(color: Colors.white54)),
+                onTap: () {
+                  Get.back();
+                  Get.toNamed(Routes.financeForm, arguments: EntryType.revenue);
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.trending_down_rounded, color: AppColors.red500),
+                title: const Text('Pengeluaran (Expense)', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('Contoh: sewa, listrik, belanja operasional', style: TextStyle(color: Colors.white54)),
+                onTap: () {
+                  Get.back();
+                  Get.toNamed(Routes.financeForm, arguments: EntryType.expense);
+                },
+              ),
+              const SizedBox(height: AppDimens.spacingSm),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _MobileLayout extends StatelessWidget {
-  const _MobileLayout({required this.controller});
+
+
+class _OverviewTab extends StatelessWidget {
+  const _OverviewTab({required this.controller});
 
   final ReportsController controller;
 
@@ -53,8 +160,6 @@ class _MobileLayout extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _FilterSection(controller: controller),
-            const SizedBox(height: AppDimens.spacingLg),
             Obx(() => _HeroProfitCard(netProfit: controller.net)),
             const SizedBox(height: AppDimens.spacingLg),
             const Text(
@@ -62,22 +167,55 @@ class _MobileLayout extends StatelessWidget {
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
             ),
             const SizedBox(height: AppDimens.spacingMd),
-            Obx(
-              () =>
-                  _ReportsChart(revenue: controller.totalRevenue, expense: controller.totalExpense),
-            ),
+            Obx(() => _ReportsChart(revenue: controller.totalRevenue, expense: controller.totalExpense)),
             const SizedBox(height: AppDimens.spacingLg),
             Obx(
               () => _StatsGrid(
                 revenue: controller.totalRevenue,
                 expense: controller.totalExpense,
-                transactionCount: controller.filteredEntries.length,
+                transactionCount: controller.transactionCount,
               ),
             ),
             const SizedBox(height: AppDimens.spacingLg),
-            _StylistReportSection(controller: controller),
-            const SizedBox(height: AppDimens.spacingLg),
-            _RecentActivitySection(controller: controller),
+            Obx(() {
+              final txCount = controller.transactionCount;
+              final paid = controller.paidCount;
+              final pending = controller.pendingCount;
+              final refund = controller.refundCount;
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppDimens.spacingLg),
+                decoration: BoxDecoration(
+                  color: AppColors.grey800,
+                  borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+                  border: Border.all(color: AppColors.grey700),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Ringkasan transaksi',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: AppDimens.spacingSm),
+                    Text(
+                      'Total: $txCount • Lunas: $paid • Pending: $pending • Refund: $refund',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: AppDimens.spacingMd),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: () => Get.toNamed(Routes.transactions),
+                        icon: const Icon(Icons.receipt_long_rounded),
+                        label: const Text('Buka riwayat transaksi'),
+                        style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.grey700)),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),
@@ -85,95 +223,326 @@ class _MobileLayout extends StatelessWidget {
   }
 }
 
-class _TabletLayout extends StatelessWidget {
-  const _TabletLayout({required this.controller});
+class _CashflowTab extends StatelessWidget {
+  const _CashflowTab({required this.controller});
 
   final ReportsController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppDimens.spacingLg),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left Panel: Dashboard
-          Expanded(
-            flex: 3,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _FilterSection(controller: controller),
-                  const SizedBox(height: AppDimens.spacingLg),
-                  Obx(() => _HeroProfitCard(netProfit: controller.net)),
-                  const SizedBox(height: AppDimens.spacingLg),
-                  const Text(
-                    'Analisis Keuangan',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimens.spacingMd),
-                  Obx(
-                    () => _ReportsChart(
-                      revenue: controller.totalRevenue,
-                      expense: controller.totalExpense,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimens.spacingLg),
-                  Obx(
-                    () => _StatsGrid(
-                      revenue: controller.totalRevenue,
-                      expense: controller.totalExpense,
-                      transactionCount: controller.filteredEntries.length,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimens.spacingLg),
-                  _StylistReportSection(controller: controller),
-                ],
-              ),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppDimens.spacingXl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Arus Kas (Revenue/Expense)',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
             ),
-          ),
-          const SizedBox(width: AppDimens.spacingXl),
-          // Right Panel: Activity List
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.all(AppDimens.spacingMd),
-              decoration: BoxDecoration(
-                color: AppColors.grey800.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
-                border: Border.all(color: AppColors.grey700),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _RecentActivityHeader(controller: controller),
-                  const SizedBox(height: AppDimens.spacingMd),
-                  Expanded(
-                    child: Obx(() {
-                      final items = controller.filteredEntries;
-                      if (items.isEmpty) {
-                        return const AppEmptyState(
-                          title: 'Belum ada data',
-                          message: 'Transaksi akan muncul di sini.',
-                        );
-                      }
-                      return ListView.separated(
-                        itemCount: items.length,
-                        separatorBuilder: (_, index) => const SizedBox(height: AppDimens.spacingSm),
-                        itemBuilder: (context, index) => _EntryTile(item: items[index]),
-                      );
-                    }),
-                  ),
-                ],
-              ),
+            const SizedBox(height: AppDimens.spacingSm),
+            const Text(
+              'Catatan pemasukan/pengeluaran non-transaksi.',
+              style: TextStyle(color: Colors.white70),
             ),
-          ),
-        ],
+            const SizedBox(height: AppDimens.spacingLg),
+            Obx(() {
+              final items = controller.filteredEntries;
+              if (items.isEmpty) {
+                return const AppEmptyState(
+                  title: 'Belum ada arus kas',
+                  message: 'Tambah pemasukan/pengeluaran untuk melengkapi laporan.',
+                );
+              }
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                separatorBuilder: (_, index) => const SizedBox(height: AppDimens.spacingSm),
+                itemBuilder: (context, index) => _EntryTile(item: items[index]),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StaffTab extends StatelessWidget {
+  const _StaffTab({required this.controller});
+
+  final ReportsController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppDimens.spacingXl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Laporan karyawan',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+            const SizedBox(height: AppDimens.spacingSm),
+            const Text(
+              'Performa berdasarkan transaksi pada rentang yang dipilih.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: AppDimens.spacingLg),
+            _StylistReportSection(controller: controller),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomersTab extends StatelessWidget {
+  const _CustomersTab({required this.controller});
+
+  final ReportsController controller;
+
+  String _formatDate(DateTime dt) {
+    dt = asLocalTime(dt);
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppDimens.spacingXl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Laporan pelanggan',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+            const SizedBox(height: AppDimens.spacingSm),
+            const Text(
+              'Top pelanggan berdasarkan total belanja pada rentang yang dipilih.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: AppDimens.spacingLg),
+            Obx(() {
+              final items = controller.customerReports;
+              if (items.isEmpty) {
+                return const AppEmptyState(
+                  title: 'Belum ada data pelanggan',
+                  message: 'Pastikan transaksi menyimpan nama pelanggan agar laporan muncul.',
+                );
+              }
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                separatorBuilder: (_, index) => const SizedBox(height: AppDimens.spacingSm),
+                itemBuilder: (context, index) {
+                  final c = items[index];
+                  return Container(
+                    padding: const EdgeInsets.all(AppDimens.spacingMd),
+                    decoration: BoxDecoration(
+                      color: AppColors.grey800,
+                      borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+                      border: Border.all(color: AppColors.grey700),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.orange500.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(color: AppColors.orange500, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        const SizedBox(width: AppDimens.spacingMd),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                c.name,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${c.totalTransactions} trx • Terakhir: ${_formatDate(c.lastVisit)}',
+                                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                              ),
+                              if ((c.phone ?? '').trim().isNotEmpty)
+                                Text(
+                                  c.phone!,
+                                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          'Rp${c.totalSpent}',
+                          style: const TextStyle(color: AppColors.green500, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TransactionsTab extends StatelessWidget {
+  const _TransactionsTab({required this.controller});
+
+  final ReportsController controller;
+
+  String _formatDateTime(DateTime dt, String time) {
+    dt = asLocalTime(dt);
+    final d = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+    final t = time.trim().isEmpty ? '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}' : time;
+    return '$d $t';
+  }
+
+  Color _statusColor(ReportTransactionStatus s) {
+    switch (s) {
+      case ReportTransactionStatus.paid:
+        return AppColors.green500;
+      case ReportTransactionStatus.pending:
+        return AppColors.orange500;
+      case ReportTransactionStatus.refund:
+        return AppColors.red500;
+    }
+  }
+
+  String _statusText(ReportTransactionStatus s) {
+    switch (s) {
+      case ReportTransactionStatus.paid:
+        return 'Lunas';
+      case ReportTransactionStatus.pending:
+        return 'Pending';
+      case ReportTransactionStatus.refund:
+        return 'Refund';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppDimens.spacingXl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Laporan transaksi',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+            const SizedBox(height: AppDimens.spacingSm),
+            Obx(() {
+              final total = controller.transactionCount;
+              return Text(
+                'Total: $total • Lunas: ${controller.paidCount} • Pending: ${controller.pendingCount} • Refund: ${controller.refundCount}',
+                style: const TextStyle(color: Colors.white70),
+              );
+            }),
+            const SizedBox(height: AppDimens.spacingLg),
+            Obx(() {
+              final items = controller.transactionReports;
+              if (items.isEmpty) {
+                return const AppEmptyState(
+                  title: 'Belum ada transaksi',
+                  message: 'Buat transaksi pertama agar laporan transaksi muncul.',
+                );
+              }
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                separatorBuilder: (_, index) => const SizedBox(height: AppDimens.spacingSm),
+                itemBuilder: (context, index) {
+                  final tx = items[index];
+                  final color = _statusColor(tx.status);
+                  return Container(
+                    padding: const EdgeInsets.all(AppDimens.spacingMd),
+                    decoration: BoxDecoration(
+                      color: AppColors.grey800,
+                      borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+                      border: Border.all(color: AppColors.grey700),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(width: 5, height: 52, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6))),
+                        const SizedBox(width: AppDimens.spacingMd),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      tx.code,
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(color: color.withValues(alpha: 0.35)),
+                                    ),
+                                    child: Text(
+                                      _statusText(tx.status),
+                                      style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatDateTime(tx.date, tx.time),
+                                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Rp${tx.amount} • ${tx.paymentMethod} • ${tx.itemsCount} item',
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Pelanggan: ${tx.customerName} • Stylist: ${tx.stylist}',
+                                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -252,38 +621,6 @@ class _FilterSection extends StatelessWidget {
   }
 }
 
-class _RecentActivitySection extends StatelessWidget {
-  const _RecentActivitySection({required this.controller});
-
-  final ReportsController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _RecentActivityHeader(controller: controller),
-        const SizedBox(height: AppDimens.spacingSm),
-        Obx(() {
-          final items = controller.filteredEntries;
-          if (items.isEmpty) {
-            return const AppEmptyState(
-              title: 'Belum ada data',
-              message: 'Transaksi akan muncul di sini.',
-            );
-          }
-          return ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: items.take(5).length,
-            separatorBuilder: (_, index) => const SizedBox(height: AppDimens.spacingSm),
-            itemBuilder: (context, index) => _EntryTile(item: items[index]),
-          );
-        }),
-      ],
-    );
-  }
-}
-
 class _StylistReportSection extends StatelessWidget {
   const _StylistReportSection({required this.controller});
 
@@ -293,6 +630,7 @@ class _StylistReportSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final items = controller.stylistReports;
+      final shown = items;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -307,7 +645,7 @@ class _StylistReportSection extends StatelessWidget {
               message: 'Transaksi dengan stylist akan muncul di sini.',
             )
           else
-            ...items.take(5).map(
+            ...shown.map(
               (s) => Container(
                 margin: const EdgeInsets.only(bottom: AppDimens.spacingSm),
                 padding: const EdgeInsets.all(AppDimens.spacingSm),
@@ -353,29 +691,6 @@ class _StylistReportSection extends StatelessWidget {
         ],
       );
     });
-  }
-}
-
-class _RecentActivityHeader extends StatelessWidget {
-  const _RecentActivityHeader({required this.controller});
-
-  final ReportsController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          'Riwayat Transaksi',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
-        ),
-        TextButton(
-          onPressed: () => Get.toNamed(Routes.financeForm),
-          child: const Text('Tambah', style: TextStyle(color: AppColors.orange500)),
-        ),
-      ],
-    );
   }
 }
 

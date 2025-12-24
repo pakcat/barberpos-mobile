@@ -7,6 +7,8 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_chip.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_empty_state.dart';
+import '../../../../core/utils/resolve_image_url.dart';
+import '../../../../core/widgets/app_image.dart';
 import '../../../../routes/app_routes.dart';
 import '../controllers/stock_controller.dart';
 import '../models/stock_models.dart';
@@ -31,19 +33,27 @@ class StockDetailView extends GetView<StockController> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
-            child: Image.network(
-              item.image,
-              height: 220,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, error, stackTrace) => Container(
-                height: 220,
-                color: AppColors.grey800,
-                child: const Icon(
-                  Icons.image_not_supported_rounded,
-                  color: Colors.white54,
-                ),
-              ),
+            child: Builder(
+              builder: (context) {
+                final url = resolveImageUrl(item.image);
+                if (url.isEmpty) {
+                  return Container(
+                    height: 220,
+                    color: AppColors.grey800,
+                    child: const Icon(
+                      Icons.image_not_supported_rounded,
+                      color: Colors.white54,
+                    ),
+                  );
+                }
+                return AppImage(
+                  imageUrl: url,
+                  height: 220,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  borderRadius: 0,
+                );
+              },
             ),
           ),
           const SizedBox(height: AppDimens.spacingLg),
@@ -142,7 +152,8 @@ class StockDetailView extends GetView<StockController> {
                       SizedBox(height: AppDimens.spacingXl),
                       AppEmptyState(
                         title: 'Belum ada riwayat',
-                        message: 'Riwayat stok akan muncul setelah penyesuaian.',
+                        message:
+                            'Riwayat stok akan muncul setelah penyesuaian.',
                       ),
                     ],
                   ),

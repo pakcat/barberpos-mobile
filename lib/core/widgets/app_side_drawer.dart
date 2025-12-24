@@ -129,6 +129,12 @@ class AppSideDrawer extends StatelessWidget {
                         ),
                       if (isManager)
                         const _DrawerItem(
+                          icon: Icons.cloud_sync_rounded,
+                          label: 'Sinkronisasi',
+                          route: Routes.sync,
+                        ),
+                      if (isManager)
+                        const _DrawerItem(
                           icon: Icons.settings_rounded,
                           label: 'Pengaturan',
                           route: Routes.settings,

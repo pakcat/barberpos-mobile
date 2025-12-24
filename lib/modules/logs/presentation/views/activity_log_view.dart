@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/utils/local_time.dart';
 import '../../../../core/values/app_strings.dart';
 
 import '../../../../core/values/app_colors.dart';
@@ -159,7 +160,7 @@ class ActivityLogView extends GetView<LogsController> {
   }
 
   String _formatTime(DateTime time) {
-    return DateFormat('dd/MM/yyyy HH:mm').format(time);
+    return DateFormat('dd/MM/yyyy HH:mm').format(asLocalTime(time));
   }
 }
 

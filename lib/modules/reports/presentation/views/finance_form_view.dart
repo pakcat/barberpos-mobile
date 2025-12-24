@@ -27,11 +27,23 @@ class _FinanceFormViewState extends State<FinanceFormView> {
   );
   final TextEditingController noteController = TextEditingController();
 
-  void save() {
+  @override
+  void initState() {
+    super.initState();
+    final arg = Get.arguments;
+    if (arg is EntryType) {
+      type = arg;
+    } else if (arg is String) {
+      final normalized = arg.trim().toLowerCase();
+      type = normalized == 'expense' ? EntryType.expense : EntryType.revenue;
+    }
+  }
+
+  Future<void> save() async {
     final title = titleController.text.trim();
     final amount = int.tryParse(amountController.text.trim()) ?? 0;
     if (title.isEmpty || amount <= 0) return;
-    controller.addEntry(
+    final synced = await controller.addEntry(
       FinanceEntry(
         id: DateTime.now().toIso8601String(),
         title: title,
@@ -45,6 +57,10 @@ class _FinanceFormViewState extends State<FinanceFormView> {
       ),
     );
     Get.back();
+    Get.snackbar(
+      'Arus kas',
+      synced ? 'Tersimpan & tersinkron ke server.' : 'Disimpan lokal (belum tersinkron).',
+    );
   }
 
   @override
@@ -113,7 +129,7 @@ class _FinanceFormViewState extends State<FinanceFormView> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: save,
+                onPressed: () => save(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.orange500,
                   foregroundColor: Colors.black,

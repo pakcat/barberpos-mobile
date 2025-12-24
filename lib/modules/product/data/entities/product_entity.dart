@@ -12,5 +12,12 @@ class ProductEntity {
   bool trackStock = false;
   int stock = 0;
   int minStock = 0;
+  bool deleted = false;
+  @enumerated
+  ProductSyncStatusEntity syncStatus = ProductSyncStatusEntity.synced;
+  String syncError = '';
 }
+
+// Keep new values appended to preserve Isar enum indices for existing data.
+enum ProductSyncStatusEntity { synced, pending, failed }
 

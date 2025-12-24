@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../../core/values/app_colors.dart';
 import '../../../../core/values/app_dimens.dart';
+import '../../../../core/utils/local_time.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../data/entities/attendance_entity.dart';
@@ -170,12 +171,13 @@ class _AttendanceList extends StatelessWidget {
               AttendanceStatus.sick: AppColors.red500,
               AttendanceStatus.off: AppColors.grey500,
             }[a.status]!;
-            final dateLabel = '${a.date.day.toString().padLeft(2, '0')}/${a.date.month.toString().padLeft(2, '0')}/${a.date.year}';
+            final d = asLocalTime(a.date);
+            final dateLabel = '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
             final inStr = a.checkIn != null
-                ? '${a.checkIn!.hour.toString().padLeft(2, '0')}:${a.checkIn!.minute.toString().padLeft(2, '0')}'
+                ? '${asLocalTime(a.checkIn!).hour.toString().padLeft(2, '0')}:${asLocalTime(a.checkIn!).minute.toString().padLeft(2, '0')}'
                 : '-';
             final outStr = a.checkOut != null
-                ? '${a.checkOut!.hour.toString().padLeft(2, '0')}:${a.checkOut!.minute.toString().padLeft(2, '0')}'
+                ? '${asLocalTime(a.checkOut!).hour.toString().padLeft(2, '0')}:${asLocalTime(a.checkOut!).minute.toString().padLeft(2, '0')}'
                 : '-';
             return Padding(
               padding: const EdgeInsets.only(bottom: AppDimens.spacingSm),

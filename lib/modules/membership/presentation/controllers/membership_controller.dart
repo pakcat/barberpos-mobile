@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/network/network_service.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/utils/local_time.dart';
 import '../../../../core/values/app_colors.dart';
 import '../../data/datasources/membership_remote_data_source.dart';
 import '../../data/entities/membership_state_entity.dart';
@@ -145,6 +146,7 @@ class MembershipController extends GetxController {
   }
 
   String formatDate(DateTime date) {
+    date = asLocalTime(date);
     const months = [
       'Jan',
       'Feb',

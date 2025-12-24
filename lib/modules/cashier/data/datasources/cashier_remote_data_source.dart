@@ -12,6 +12,7 @@ class CashierRemoteDataSource {
     final res = await _dio.post<Map<String, dynamic>>(
       '/orders',
       data: payload.toJson(),
+      options: Options(headers: {'X-Idempotency-Key': payload.clientRef}),
     );
     return OrderResponseDto.fromJson(res.data ?? <String, dynamic>{});
   }

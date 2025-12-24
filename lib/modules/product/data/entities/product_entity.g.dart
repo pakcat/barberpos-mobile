@@ -22,13 +22,25 @@ const ProductEntitySchema = CollectionSchema(
       name: r'category',
       type: IsarType.string,
     ),
-    r'image': PropertySchema(id: 1, name: r'image', type: IsarType.string),
-    r'minStock': PropertySchema(id: 2, name: r'minStock', type: IsarType.long),
-    r'name': PropertySchema(id: 3, name: r'name', type: IsarType.string),
-    r'price': PropertySchema(id: 4, name: r'price', type: IsarType.long),
-    r'stock': PropertySchema(id: 5, name: r'stock', type: IsarType.long),
+    r'deleted': PropertySchema(id: 1, name: r'deleted', type: IsarType.bool),
+    r'image': PropertySchema(id: 2, name: r'image', type: IsarType.string),
+    r'minStock': PropertySchema(id: 3, name: r'minStock', type: IsarType.long),
+    r'name': PropertySchema(id: 4, name: r'name', type: IsarType.string),
+    r'price': PropertySchema(id: 5, name: r'price', type: IsarType.long),
+    r'stock': PropertySchema(id: 6, name: r'stock', type: IsarType.long),
+    r'syncError': PropertySchema(
+      id: 7,
+      name: r'syncError',
+      type: IsarType.string,
+    ),
+    r'syncStatus': PropertySchema(
+      id: 8,
+      name: r'syncStatus',
+      type: IsarType.byte,
+      enumMap: _ProductEntitysyncStatusEnumValueMap,
+    ),
     r'trackStock': PropertySchema(
-      id: 6,
+      id: 9,
       name: r'trackStock',
       type: IsarType.bool,
     ),
@@ -58,6 +70,7 @@ int _productEntityEstimateSize(
   bytesCount += 3 + object.category.length * 3;
   bytesCount += 3 + object.image.length * 3;
   bytesCount += 3 + object.name.length * 3;
+  bytesCount += 3 + object.syncError.length * 3;
   return bytesCount;
 }
 
@@ -68,12 +81,15 @@ void _productEntitySerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.category);
-  writer.writeString(offsets[1], object.image);
-  writer.writeLong(offsets[2], object.minStock);
-  writer.writeString(offsets[3], object.name);
-  writer.writeLong(offsets[4], object.price);
-  writer.writeLong(offsets[5], object.stock);
-  writer.writeBool(offsets[6], object.trackStock);
+  writer.writeBool(offsets[1], object.deleted);
+  writer.writeString(offsets[2], object.image);
+  writer.writeLong(offsets[3], object.minStock);
+  writer.writeString(offsets[4], object.name);
+  writer.writeLong(offsets[5], object.price);
+  writer.writeLong(offsets[6], object.stock);
+  writer.writeString(offsets[7], object.syncError);
+  writer.writeByte(offsets[8], object.syncStatus.index);
+  writer.writeBool(offsets[9], object.trackStock);
 }
 
 ProductEntity _productEntityDeserialize(
@@ -84,13 +100,18 @@ ProductEntity _productEntityDeserialize(
 ) {
   final object = ProductEntity();
   object.category = reader.readString(offsets[0]);
+  object.deleted = reader.readBool(offsets[1]);
   object.id = id;
-  object.image = reader.readString(offsets[1]);
-  object.minStock = reader.readLong(offsets[2]);
-  object.name = reader.readString(offsets[3]);
-  object.price = reader.readLong(offsets[4]);
-  object.stock = reader.readLong(offsets[5]);
-  object.trackStock = reader.readBool(offsets[6]);
+  object.image = reader.readString(offsets[2]);
+  object.minStock = reader.readLong(offsets[3]);
+  object.name = reader.readString(offsets[4]);
+  object.price = reader.readLong(offsets[5]);
+  object.stock = reader.readLong(offsets[6]);
+  object.syncError = reader.readString(offsets[7]);
+  object.syncStatus =
+      _ProductEntitysyncStatusValueEnumMap[reader.readByteOrNull(offsets[8])] ??
+      ProductSyncStatusEntity.synced;
+  object.trackStock = reader.readBool(offsets[9]);
   return object;
 }
 
@@ -104,21 +125,42 @@ P _productEntityDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 2:
-      return (reader.readLong(offset)) as P;
-    case 3:
       return (reader.readString(offset)) as P;
-    case 4:
+    case 3:
       return (reader.readLong(offset)) as P;
+    case 4:
+      return (reader.readString(offset)) as P;
     case 5:
       return (reader.readLong(offset)) as P;
     case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
+      return (_ProductEntitysyncStatusValueEnumMap[reader.readByteOrNull(
+                offset,
+              )] ??
+              ProductSyncStatusEntity.synced)
+          as P;
+    case 9:
       return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
+
+const _ProductEntitysyncStatusEnumValueMap = {
+  'synced': 0,
+  'pending': 1,
+  'failed': 2,
+};
+const _ProductEntitysyncStatusValueEnumMap = {
+  0: ProductSyncStatusEntity.synced,
+  1: ProductSyncStatusEntity.pending,
+  2: ProductSyncStatusEntity.failed,
+};
 
 Id _productEntityGetId(ProductEntity object) {
   return object.id;
@@ -359,6 +401,15 @@ extension ProductEntityQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'category', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  deletedEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'deleted', value: value),
       );
     });
   }
@@ -871,6 +922,202 @@ extension ProductEntityQueryFilter
   }
 
   QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'syncError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'syncError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'syncError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'syncError',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'syncError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'syncError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'syncError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'syncError',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'syncError', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncErrorIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'syncError', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncStatusEqualTo(ProductSyncStatusEntity value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'syncStatus', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncStatusGreaterThan(ProductSyncStatusEntity value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'syncStatus',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncStatusLessThan(ProductSyncStatusEntity value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'syncStatus',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
+  syncStatusBetween(
+    ProductSyncStatusEntity lower,
+    ProductSyncStatusEntity upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'syncStatus',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterFilterCondition>
   trackStockEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -898,6 +1145,18 @@ extension ProductEntityQuerySortBy
   sortByCategoryDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'category', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> sortByDeleted() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'deleted', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> sortByDeletedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'deleted', Sort.desc);
     });
   }
 
@@ -962,6 +1221,32 @@ extension ProductEntityQuerySortBy
     });
   }
 
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> sortBySyncError() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncError', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy>
+  sortBySyncErrorDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> sortBySyncStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy>
+  sortBySyncStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncStatus', Sort.desc);
+    });
+  }
+
   QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> sortByTrackStock() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'trackStock', Sort.asc);
@@ -988,6 +1273,18 @@ extension ProductEntityQuerySortThenBy
   thenByCategoryDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'category', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> thenByDeleted() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'deleted', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> thenByDeletedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'deleted', Sort.desc);
     });
   }
 
@@ -1064,6 +1361,32 @@ extension ProductEntityQuerySortThenBy
     });
   }
 
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> thenBySyncError() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncError', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy>
+  thenBySyncErrorDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> thenBySyncStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy>
+  thenBySyncStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncStatus', Sort.desc);
+    });
+  }
+
   QueryBuilder<ProductEntity, ProductEntity, QAfterSortBy> thenByTrackStock() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'trackStock', Sort.asc);
@@ -1085,6 +1408,12 @@ extension ProductEntityQueryWhereDistinct
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'category', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QDistinct> distinctByDeleted() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'deleted');
     });
   }
 
@@ -1122,6 +1451,20 @@ extension ProductEntityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ProductEntity, ProductEntity, QDistinct> distinctBySyncError({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'syncError', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductEntity, QDistinct> distinctBySyncStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'syncStatus');
+    });
+  }
+
   QueryBuilder<ProductEntity, ProductEntity, QDistinct> distinctByTrackStock() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'trackStock');
@@ -1140,6 +1483,12 @@ extension ProductEntityQueryProperty
   QueryBuilder<ProductEntity, String, QQueryOperations> categoryProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'category');
+    });
+  }
+
+  QueryBuilder<ProductEntity, bool, QQueryOperations> deletedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'deleted');
     });
   }
 
@@ -1170,6 +1519,19 @@ extension ProductEntityQueryProperty
   QueryBuilder<ProductEntity, int, QQueryOperations> stockProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'stock');
+    });
+  }
+
+  QueryBuilder<ProductEntity, String, QQueryOperations> syncErrorProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'syncError');
+    });
+  }
+
+  QueryBuilder<ProductEntity, ProductSyncStatusEntity, QQueryOperations>
+  syncStatusProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'syncStatus');
     });
   }
 

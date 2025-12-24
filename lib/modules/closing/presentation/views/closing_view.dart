@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../../core/values/app_colors.dart';
 import '../../../../core/values/app_dimens.dart';
+import '../../../../core/utils/local_time.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/app_side_drawer.dart';
@@ -309,6 +310,7 @@ class _ClosingHistory extends StatelessWidget {
   }
 
   String _format(DateTime dt) {
-    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    final t = asLocalTime(dt);
+    return '${t.day.toString().padLeft(2, '0')}/${t.month.toString().padLeft(2, '0')}/${t.year} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
   }
 }

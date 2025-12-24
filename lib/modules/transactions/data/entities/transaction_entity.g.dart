@@ -282,10 +282,15 @@ P _transactionEntityDeserializeProp<P>(
   }
 }
 
-const _TransactionEntitystatusEnumValueMap = {'paid': 0, 'refund': 1};
+const _TransactionEntitystatusEnumValueMap = {
+  'paid': 0,
+  'refund': 1,
+  'pending': 2,
+};
 const _TransactionEntitystatusValueEnumMap = {
   0: TransactionStatusEntity.paid,
   1: TransactionStatusEntity.refund,
+  2: TransactionStatusEntity.pending,
 };
 
 Id _transactionEntityGetId(TransactionEntity object) {

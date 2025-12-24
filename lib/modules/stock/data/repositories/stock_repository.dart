@@ -1,6 +1,7 @@
 import 'package:barberpos_mobile/modules/product/data/entities/product_entity.dart';
 import 'package:isar_community/isar.dart';
 
+import '../../../../core/utils/retry_backoff.dart';
 import '../datasources/stock_remote_data_source.dart';
 import '../entities/stock_adjustment_outbox_entity.dart';
 import '../entities/stock_entity.dart';
@@ -15,12 +16,21 @@ class StockRepository {
     if (restRemote != null) {
       try {
         final items = await restRemote!.fetchAll();
-        await replaceAll(items);
-        return items;
+        if (items.isNotEmpty) {
+          await replaceAll(items);
+          return items;
+        }
       } catch (_) {}
     }
     // Selalu sinkron dari produk trackStock agar sesuai dengan perubahan stok produk.
-    final products = await _isar.productEntitys.filter().trackStockEqualTo(true).findAll();
+    var q = _isar.productEntitys
+        .filter()
+        .deletedEqualTo(false)
+        .trackStockEqualTo(true);
+    if (restRemote != null) {
+      q = q.syncStatusEqualTo(ProductSyncStatusEntity.synced);
+    }
+    final products = await q.findAll();
     final derived = products.map(_mapFromProduct).toList();
     await replaceAll(derived);
     return derived;
@@ -77,7 +87,25 @@ class StockRepository {
     });
   }
 
-  Future<List<StockAdjustmentOutboxEntity>> getPendingAdjustments({int limit = 50}) async {
+  Future<List<StockAdjustmentOutboxEntity>> getPendingAdjustments({
+    int limit = 50,
+  }) async {
+    final now = DateTime.now();
+    return _isar.stockAdjustmentOutboxEntitys
+        .filter()
+        .syncedEqualTo(false)
+        .nextAttemptAtIsNull()
+        .or()
+        .syncedEqualTo(false)
+        .nextAttemptAtLessThan(now, include: true)
+        .sortByCreatedAt()
+        .limit(limit)
+        .findAll();
+  }
+
+  Future<List<StockAdjustmentOutboxEntity>> getAllUnsyncedAdjustments({
+    int limit = 200,
+  }) async {
     return _isar.stockAdjustmentOutboxEntitys
         .filter()
         .syncedEqualTo(false)
@@ -86,19 +114,73 @@ class StockRepository {
         .findAll();
   }
 
+  Future<void> resetAdjustmentRetry(int id) async {
+    await _isar.writeTxn(() async {
+      final entity = await _isar.stockAdjustmentOutboxEntitys.get(id);
+      if (entity == null) return;
+      entity.nextAttemptAt = null;
+      await _isar.stockAdjustmentOutboxEntitys.put(entity);
+    });
+  }
+
+  Future<void> deleteAdjustment(int id) async {
+    await _isar.writeTxn(() async {
+      await _isar.stockAdjustmentOutboxEntitys.delete(id);
+    });
+  }
+
+  Future<void> recordAdjustmentAttempt(int id) async {
+    await _isar.writeTxn(() async {
+      final entity = await _isar.stockAdjustmentOutboxEntitys.get(id);
+      if (entity == null) return;
+      entity
+        ..attempts = entity.attempts + 1
+        ..lastAttemptAt = DateTime.now();
+      await _isar.stockAdjustmentOutboxEntitys.put(entity);
+    });
+  }
+
   Future<void> markAdjustmentsSynced(List<int> ids) async {
     if (ids.isEmpty) return;
     await _isar.writeTxn(() async {
       final rows = await _isar.stockAdjustmentOutboxEntitys.getAll(ids);
       final updated = rows.whereType<StockAdjustmentOutboxEntity>().toList();
       for (final e in updated) {
-        e.synced = true;
+        e
+          ..synced = true
+          ..lastError = null
+          ..nextAttemptAt = null;
       }
       await _isar.stockAdjustmentOutboxEntitys.putAll(updated);
     });
   }
 
-  Future<List<Map<String, dynamic>>> historyRemote(int stockId, {int limit = 50}) async {
+  Future<void> markAdjustmentFailed({required int id, required String message}) async {
+    await _isar.writeTxn(() async {
+      final entity = await _isar.stockAdjustmentOutboxEntitys.get(id);
+      if (entity == null) return;
+      entity
+        ..lastError = message
+        ..nextAttemptAt = DateTime.now().add(computeRetryBackoff(entity.attempts));
+      await _isar.stockAdjustmentOutboxEntitys.put(entity);
+    });
+  }
+
+  Future<void> markAdjustmentPermanentFailed({required int id, required String message}) async {
+    await _isar.writeTxn(() async {
+      final entity = await _isar.stockAdjustmentOutboxEntitys.get(id);
+      if (entity == null) return;
+      entity
+        ..lastError = message
+        ..nextAttemptAt = DateTime.now().add(const Duration(days: 3650));
+      await _isar.stockAdjustmentOutboxEntitys.put(entity);
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> historyRemote(
+    int stockId, {
+    int limit = 50,
+  }) async {
     final remote = restRemote;
     if (remote == null) return const [];
     try {
@@ -115,7 +197,8 @@ class StockRepository {
     });
   }
 
-  Future<void> delete(Id id) async => _isar.writeTxn(() => _isar.stockEntitys.delete(id));
+  Future<void> delete(Id id) async =>
+      _isar.writeTxn(() => _isar.stockEntitys.delete(id));
 
   StockEntity _mapFromProduct(ProductEntity p) {
     final stock = StockEntity()

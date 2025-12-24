@@ -3,16 +3,20 @@ import 'package:get/get.dart';
 import '../database/local_database.dart';
 import '../services/activity_log_service.dart';
 import '../services/sync_service.dart';
+import '../services/sync_queue_service.dart';
 import '../services/region_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/notification_service.dart';
+import '../services/network_status_service.dart';
 import '../repositories/user_repository.dart';
 import '../repositories/user_repository_impl.dart';
 import '../../modules/management/data/repositories/management_repository.dart';
 import '../../modules/management/data/datasources/management_remote_data_source.dart';
 import '../../modules/product/data/repositories/product_repository.dart';
 import '../../modules/product/data/datasources/product_remote_data_source.dart';
+import '../../modules/product/data/repositories/product_outbox_repository.dart';
+import '../../modules/product/data/repositories/product_image_outbox_repository.dart';
 import '../../modules/staff/data/repositories/staff_repository.dart';
 import '../../modules/staff/data/datasources/staff_remote_data_source.dart';
 import '../../modules/staff/data/repositories/attendance_repository.dart';
@@ -30,6 +34,7 @@ import 'app_config.dart';
 import '../network/network_service.dart';
 import '../../modules/closing/data/repositories/closing_repository.dart';
 import '../../modules/cashier/data/repositories/order_outbox_repository.dart';
+import '../../modules/settings/data/repositories/qris_outbox_repository.dart';
 
 class GlobalBindings extends Bindings {
   @override
@@ -44,6 +49,11 @@ class GlobalBindings extends Bindings {
     Get.put<ActivityLogService>(ActivityLogService(dbReady: dbReady), permanent: true);
     Get.lazyPut<SessionService>(() => SessionService(db.isar), fenix: true);
     Get.put<OrderOutboxRepository>(OrderOutboxRepository(dbReady), permanent: true);
+    Get.put<ProductOutboxRepository>(ProductOutboxRepository(dbReady), permanent: true);
+    Get.put<ProductImageOutboxRepository>(ProductImageOutboxRepository(dbReady), permanent: true);
+    Get.put<QrisOutboxRepository>(QrisOutboxRepository(dbReady), permanent: true);
+    Get.put<SyncQueueService>(SyncQueueService(), permanent: true);
+    Get.put<NetworkStatusService>(NetworkStatusService(), permanent: true);
 
     // Network service is registered for REST backend; safe fallback if offline/local.
     Get.lazyPut<NetworkService>(() {

@@ -8,7 +8,8 @@ class RefreshTokenInterceptor extends Interceptor {
     required this.session,
     required this.baseUrl,
     this.refreshPath = '/auth/refresh',
-  }) : _refreshDio = Dio(BaseOptions(baseUrl: baseUrl))..interceptors.add(ResponseEnvelopeInterceptor());
+  }) : _refreshDio = Dio(BaseOptions(baseUrl: baseUrl))
+         ..interceptors.add(ResponseEnvelopeInterceptor());
 
   final SessionService session;
   final String baseUrl;
@@ -23,7 +24,9 @@ class RefreshTokenInterceptor extends Interceptor {
     final status = err.response?.statusCode;
     final isRefreshCall = request.path.contains(refreshPath);
 
-    if (status != 401 || isRefreshCall || request.extra['skipRefresh'] == true) {
+    if (status != 401 ||
+        isRefreshCall ||
+        request.extra['skipRefresh'] == true) {
       return super.onError(err, handler);
     }
 
@@ -34,6 +37,10 @@ class RefreshTokenInterceptor extends Interceptor {
 
     final refreshToken = await session.loadRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
+      final token = await session.loadToken();
+      if (token != null && token.isNotEmpty) {
+        await session.clear();
+      }
       return super.onError(err, handler);
     }
 
@@ -42,7 +49,10 @@ class RefreshTokenInterceptor extends Interceptor {
       final refreshRes = await _refreshDio.post<Map<String, dynamic>>(
         refreshPath,
         data: {'refreshToken': refreshToken},
-        options: Options(headers: {'Authorization': 'Bearer $refreshToken'}, extra: {'skipRefresh': true}),
+        options: Options(
+          headers: {'Authorization': 'Bearer $refreshToken'},
+          extra: {'skipRefresh': true},
+        ),
       );
       final data = refreshRes.data ?? {};
       final newToken = data['token']?.toString();
@@ -50,7 +60,10 @@ class RefreshTokenInterceptor extends Interceptor {
       if (newToken == null || newToken.isEmpty) {
         return super.onError(err, handler);
       }
-      await session.saveToken(token: newToken, expiresAt: DateTime.now().add(const Duration(hours: 1)));
+      await session.saveToken(
+        token: newToken,
+        expiresAt: DateTime.now().add(const Duration(hours: 1)),
+      );
       await session.saveRefreshToken(refreshToken: newRefresh);
 
       final cloned = await _retry(request, newToken);
@@ -64,10 +77,12 @@ class RefreshTokenInterceptor extends Interceptor {
   }
 
   Future<Response<dynamic>> _retry(RequestOptions request, String token) {
-    final dio = Dio(BaseOptions(baseUrl: baseUrl))..interceptors.add(ResponseEnvelopeInterceptor());
+    final dio = Dio(BaseOptions(baseUrl: baseUrl))
+      ..interceptors.add(ResponseEnvelopeInterceptor());
     final options = Options(
       method: request.method,
-      headers: Map<String, dynamic>.from(request.headers)..['Authorization'] = 'Bearer $token',
+      headers: Map<String, dynamic>.from(request.headers)
+        ..['Authorization'] = 'Bearer $token',
       extra: Map<String, dynamic>.from(request.extra)..['skipRefresh'] = true,
       responseType: request.responseType,
       contentType: request.contentType,

@@ -35,12 +35,14 @@ class ReportsRepository {
         .findAll();
   }
 
-  Future<Id> upsert(FinanceEntryEntity entry) async {
+  Future<FinanceUpsertResult> upsert(FinanceEntryEntity entry) async {
     final localId = entry.id;
     final id = await _isar.writeTxn(() => _isar.financeEntryEntitys.put(entry));
 
     final remote = restRemote;
-    if (remote == null) return id;
+    if (remote == null) {
+      return FinanceUpsertResult(localId: id, synced: false);
+    }
 
     try {
       final saved = await remote.add(entry);
@@ -50,9 +52,10 @@ class ReportsRepository {
           await _isar.financeEntryEntitys.put(saved);
         });
       }
+      return FinanceUpsertResult(localId: id, synced: true);
     } catch (_) {}
 
-    return id;
+    return FinanceUpsertResult(localId: id, synced: false);
   }
 
   Future<Uint8List?> downloadExport({
@@ -95,4 +98,11 @@ class ReportsRepository {
   }
 
   Future<void> delete(Id id) async => _isar.writeTxn(() => _isar.financeEntryEntitys.delete(id));
+}
+
+class FinanceUpsertResult {
+  FinanceUpsertResult({required this.localId, required this.synced});
+
+  final Id localId;
+  final bool synced;
 }

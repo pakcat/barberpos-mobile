@@ -7,6 +7,7 @@ import '../../../../core/printing/receipt_pdf.dart';
 import '../../../../core/printing/thermal_printer_service.dart';
 import '../../../../core/values/app_colors.dart';
 import '../../../../core/values/app_dimens.dart';
+import '../../../../core/utils/local_time.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../controllers/transaction_controller.dart';
@@ -154,6 +155,7 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
   }
 
   String _formatFullDate(DateTime date) {
+    date = asLocalTime(date);
     const months = [
       '',
       'Januari',
@@ -556,8 +558,11 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPending = status == TransactionStatus.pending;
     final isPaid = status == TransactionStatus.paid;
-    final color = isPaid ? AppColors.green500 : AppColors.red500;
+    final color = isPending
+        ? AppColors.orange500
+        : (isPaid ? AppColors.green500 : AppColors.red500);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimens.spacingSm,
@@ -568,7 +573,7 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        isPaid ? 'Lunas' : 'Refund',
+        isPending ? 'Pending' : (isPaid ? 'Lunas' : 'Refund'),
         style: TextStyle(color: color, fontWeight: FontWeight.w600),
       ),
     );

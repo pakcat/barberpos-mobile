@@ -15,5 +15,7 @@ class OrderOutboxEntity {
   String? serverCode;
   DateTime? syncedAt;
   String? lastError;
+  int attempts = 0;
+  DateTime? lastAttemptAt;
+  DateTime? nextAttemptAt;
 }
-

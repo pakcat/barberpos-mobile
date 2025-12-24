@@ -10,6 +10,8 @@ import 'entities/region_entity.dart';
 import '../../modules/management/data/entities/category_entity.dart';
 import '../../modules/management/data/entities/customer_entity.dart';
 import '../../modules/product/data/entities/product_entity.dart';
+import '../../modules/product/data/entities/product_outbox_entity.dart';
+import '../../modules/product/data/entities/product_image_outbox_entity.dart';
 import '../../modules/staff/data/entities/employee_entity.dart';
 import '../../modules/reports/data/entities/finance_entry_entity.dart';
 import '../../modules/membership/data/entities/membership_topup_entity.dart';
@@ -22,6 +24,7 @@ import '../../modules/membership/data/entities/membership_state_entity.dart';
 import '../../modules/cashier/data/entities/cart_item_entity.dart';
 import '../../modules/cashier/data/entities/order_outbox_entity.dart';
 import '../../modules/staff/data/entities/attendance_entity.dart';
+import '../../modules/settings/data/entities/qris_outbox_entity.dart';
 
 class LocalDatabase extends GetxService {
   late final Isar isar;
@@ -37,6 +40,8 @@ class LocalDatabase extends GetxService {
         CategoryEntitySchema,
         CustomerEntitySchema,
         ProductEntitySchema,
+        ProductOutboxEntitySchema,
+        ProductImageOutboxEntitySchema,
         EmployeeEntitySchema,
         FinanceEntryEntitySchema,
         MembershipTopupEntitySchema,
@@ -49,6 +54,7 @@ class LocalDatabase extends GetxService {
         CartItemEntitySchema,
         OrderOutboxEntitySchema,
         AttendanceEntitySchema,
+        QrisOutboxEntitySchema,
       ],
       directory: dir.path,
       inspector: kDebugMode,

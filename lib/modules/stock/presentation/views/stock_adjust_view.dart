@@ -7,6 +7,8 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_input_field.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_section_header.dart';
+import '../../../../core/utils/resolve_image_url.dart';
+import '../../../../core/widgets/app_image.dart';
 import '../controllers/stock_controller.dart';
 import '../models/stock_models.dart';
 
@@ -26,10 +28,14 @@ class StockAdjustView extends GetView<StockController> {
       ),
       body: Obx(() {
         final list = controller.products;
-        final item = controller.selected.value ?? (list.isNotEmpty ? list.first : null);
+        final item =
+            controller.selected.value ?? (list.isNotEmpty ? list.first : null);
         if (item == null) {
           return const Center(
-            child: Text('Belum ada data stok', style: TextStyle(color: Colors.white70)),
+            child: Text(
+              'Belum ada data stok',
+              style: TextStyle(color: Colors.white70),
+            ),
           );
         }
         return SingleChildScrollView(
@@ -47,20 +53,28 @@ class StockAdjustView extends GetView<StockController> {
                       borderRadius: BorderRadius.circular(
                         AppDimens.cornerRadius / 2,
                       ),
-                      child: Image.network(
-                        item.image,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, error, stackTrace) => Container(
-                          width: 60,
-                          height: 60,
-                          color: AppColors.grey700,
-                          child: const Icon(
-                            Icons.image_not_supported_rounded,
-                            color: Colors.white54,
-                          ),
-                        ),
+                      child: Builder(
+                        builder: (context) {
+                          final url = resolveImageUrl(item.image);
+                          if (url.isEmpty) {
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              color: AppColors.grey700,
+                              child: const Icon(
+                                Icons.image_not_supported_rounded,
+                                color: Colors.white54,
+                              ),
+                            );
+                          }
+                          return AppImage(
+                            imageUrl: url,
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            borderRadius: 0,
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(width: AppDimens.spacingMd),
@@ -70,9 +84,8 @@ class StockAdjustView extends GetView<StockController> {
                         children: [
                           Text(
                             item.name,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleMedium?.copyWith(color: Colors.white),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(color: Colors.white),
                           ),
                           const SizedBox(height: AppDimens.spacingXs),
                           Text(
@@ -189,7 +202,9 @@ class StockAdjustView extends GetView<StockController> {
                 width: double.infinity,
                 child: Obx(
                   () => ElevatedButton(
-                    onPressed: controller.canSubmit ? controller.submitAdjustment : null,
+                    onPressed: controller.canSubmit
+                        ? controller.submitAdjustment
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.orange500,
                       foregroundColor: Colors.black,

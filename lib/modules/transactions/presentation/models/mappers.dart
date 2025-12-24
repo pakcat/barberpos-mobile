@@ -26,8 +26,9 @@ TransactionEntity toTransactionEntity(TransactionItem item) {
     ..time = item.time
     ..amount = item.amount
     ..paymentMethod = item.paymentMethod
-    ..status =
-        item.status == TransactionStatus.refund ? TransactionStatusEntity.refund : TransactionStatusEntity.paid
+    ..status = item.status == TransactionStatus.refund
+        ? TransactionStatusEntity.refund
+        : (item.status == TransactionStatus.pending ? TransactionStatusEntity.pending : TransactionStatusEntity.paid)
     ..refundedAt = item.refundedAt
     ..refundNote = item.refundNote ?? ''
     ..items = item.items.map(toLineEntity).toList()

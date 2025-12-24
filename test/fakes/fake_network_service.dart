@@ -6,10 +6,13 @@ import 'package:barberpos_mobile/core/database/entities/session_entity.dart';
 
 class FakeNetworkService extends NetworkService {
   FakeNetworkService()
-      : super(
-          config: const AppConfig(baseUrl: 'http://localhost', backend: BackendMode.rest),
-          session: _FakeSession(),
-        );
+    : super(
+        config: const AppConfig(
+          baseUrl: 'http://localhost',
+          backend: BackendMode.rest,
+        ),
+        session: _FakeSession(),
+      );
 
   @override
   Dio get dio => Dio(BaseOptions(baseUrl: 'http://localhost'));
@@ -20,7 +23,7 @@ class _FakeSession implements SessionService {
   Future<SessionEntity?> load() async => SessionEntity()..id = 1;
 
   @override
-  Future<void> clear() async {}
+  Future<void> clear({bool purgeLocalData = true}) async {}
 
   @override
   Future<DateTime?> loadExpiry() async => null;
@@ -38,7 +41,11 @@ class _FakeSession implements SessionService {
   Future<void> saveRefreshToken({required String refreshToken}) async {}
 
   @override
-  Future<void> saveToken({required String token, DateTime? expiresAt, int? userId}) async {}
+  Future<void> saveToken({
+    required String token,
+    DateTime? expiresAt,
+    int? userId,
+  }) async {}
 
   @override
   Future<void> saveUserId(int? userId) async {}

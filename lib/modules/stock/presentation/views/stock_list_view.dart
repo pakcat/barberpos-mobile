@@ -9,6 +9,8 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_side_drawer.dart';
+import '../../../../core/utils/resolve_image_url.dart';
+import '../../../../core/widgets/app_image.dart';
 import '../../../../routes/app_routes.dart';
 import '../controllers/stock_controller.dart';
 import '../models/stock_models.dart';
@@ -82,7 +84,8 @@ class StockListView extends GetView<StockController> {
               }
               return ListView.separated(
                 itemCount: products.length,
-                separatorBuilder: (_, index) => const SizedBox(height: AppDimens.spacingSm),
+                separatorBuilder: (_, index) =>
+                    const SizedBox(height: AppDimens.spacingSm),
                 itemBuilder: (context, index) {
                   return _ProductTile(
                     item: products[index],
@@ -127,7 +130,10 @@ class _SummaryCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: AppDimens.spacingMd),
@@ -142,7 +148,10 @@ class _SummaryCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Text(title, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              Text(
+                title,
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
             ],
           ),
         ],
@@ -174,17 +183,28 @@ class _ProductTile extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(AppDimens.cornerRadius / 2),
-            child: Image.network(
-              item.image,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
-              errorBuilder: (_, error, stackTrace) => Container(
-                width: 60,
-                height: 60,
-                color: AppColors.grey700,
-                child: const Icon(Icons.image_not_supported_rounded, color: Colors.white54),
-              ),
+            child: Builder(
+              builder: (context) {
+                final url = resolveImageUrl(item.image);
+                if (url.isEmpty) {
+                  return Container(
+                    width: 60,
+                    height: 60,
+                    color: AppColors.grey700,
+                    child: const Icon(
+                      Icons.image_not_supported_rounded,
+                      color: Colors.white54,
+                    ),
+                  );
+                }
+                return AppImage(
+                  imageUrl: url,
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.cover,
+                  borderRadius: 0,
+                );
+              },
             ),
           ),
           const SizedBox(width: AppDimens.spacingMd),
@@ -194,10 +214,15 @@ class _ProductTile extends StatelessWidget {
               children: [
                 Text(
                   item.name,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: AppDimens.spacingXs),
-                Text(item.category, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                Text(
+                  item.category,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
               ],
             ),
           ),
@@ -210,7 +235,11 @@ class _ProductTile extends StatelessWidget {
             ),
             child: Text(
               '${item.stock} Unit',
-              style: TextStyle(color: stockColor, fontWeight: FontWeight.w600, fontSize: 12),
+              style: TextStyle(
+                color: stockColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
             ),
           ),
           const SizedBox(width: AppDimens.spacingSm),

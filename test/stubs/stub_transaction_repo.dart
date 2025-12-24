@@ -41,6 +41,20 @@ class StubTransactionRepository implements TransactionRepository {
   }
 
   @override
+  Future<void> markSyncedPending({
+    required String pendingCode,
+    required String serverCode,
+  }) async {
+    final existing = _txs.where((e) => e.code == pendingCode).toList();
+    if (existing.isEmpty) return;
+    existing.first
+      ..code = serverCode
+      ..status = TransactionStatusEntity.paid
+      ..refundedAt = null
+      ..refundNote = '';
+  }
+
+  @override
   Future<bool> refundByCode({
     required String code,
     String? note,

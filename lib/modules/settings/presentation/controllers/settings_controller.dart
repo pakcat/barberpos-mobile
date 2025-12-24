@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:typed_data';
 
 import '../../../../core/services/auth_service.dart';
 import '../../domain/entities/settings_profile.dart';
+import '../../domain/repositories/settings_repository.dart';
 import '../../domain/usecases/get_settings.dart';
 import '../../domain/usecases/save_settings.dart';
+import '../../data/repositories/settings_repository_impl.dart';
 
 class SettingsController extends GetxController {
   SettingsController({
     required GetSettingsUseCase getSettings,
     required SaveSettingsUseCase saveSettings,
+    SettingsRepository? repository,
   }) : _getSettings = getSettings,
-       _saveSettings = saveSettings;
+       _saveSettings = saveSettings,
+       _repo = repository ?? Get.find<SettingsRepository>();
 
   final GetSettingsUseCase _getSettings;
   final SaveSettingsUseCase _saveSettings;
+  final SettingsRepository _repo;
   final AuthService _auth = Get.find<AuthService>();
 
   AppUser? get user => _auth.currentUser;
@@ -57,6 +65,10 @@ class SettingsController extends GetxController {
   final RxnString passwordError = RxnString();
   final RxnString passwordInfo = RxnString();
 
+  final Rxn<Uint8List> qrisImage = Rxn<Uint8List>();
+  final RxBool qrisLoading = false.obs;
+  final RxBool qrisUploading = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -67,7 +79,68 @@ class SettingsController extends GetxController {
     loading.value = true;
     final profile = await _getSettings();
     _applyProfile(profile);
+    await _loadQrisImage();
     loading.value = false;
+  }
+
+  Future<void> _loadQrisImage() async {
+    qrisLoading.value = true;
+    try {
+      qrisImage.value = await _repo.loadQrisImage();
+    } catch (_) {
+      qrisImage.value = null;
+    } finally {
+      qrisLoading.value = false;
+    }
+  }
+
+  Future<void> pickAndUploadQrisFromGallery() async {
+    if (qrisUploading.value) return;
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+    );
+    if (picked == null) return;
+
+    qrisUploading.value = true;
+    try {
+      final bytes = await File(picked.path).readAsBytes();
+      final filename = picked.name;
+      final lower = filename.toLowerCase();
+      final mimeType = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      await _repo.saveQrisImage(
+        bytes: bytes,
+        filename: filename,
+        mimeType: mimeType,
+      );
+      await _loadQrisImage();
+      Get.snackbar('QRIS diperbarui', 'Foto QRIS berhasil diupload.');
+    } on OfflineQueuedException catch (_) {
+      await _loadQrisImage();
+      Get.snackbar('Offline', 'QRIS disimpan dan akan diupload saat online.');
+    } catch (e) {
+      Get.snackbar('Upload gagal', 'Gagal upload QRIS: $e');
+    } finally {
+      qrisUploading.value = false;
+    }
+  }
+
+  Future<void> clearQris() async {
+    if (qrisUploading.value) return;
+    qrisUploading.value = true;
+    try {
+      await _repo.clearQrisImage();
+      qrisImage.value = null;
+      Get.snackbar('QRIS dihapus', 'Foto QRIS dihapus.');
+    } on OfflineQueuedException catch (_) {
+      qrisImage.value = null;
+      Get.snackbar('Offline', 'Hapus QRIS disimpan dan akan disinkronkan saat online.');
+    } catch (e) {
+      Get.snackbar('Gagal', 'Tidak bisa menghapus QRIS: $e');
+    } finally {
+      qrisUploading.value = false;
+    }
   }
 
   void _applyProfile(SettingsProfile profile) {
@@ -114,7 +187,9 @@ class SettingsController extends GetxController {
   void setPrinterType(String? value) {
     if (value == null) return;
     final normalized = value.trim().toLowerCase();
-    if (normalized == 'system' || normalized == 'lan' || normalized == 'bluetooth') {
+    if (normalized == 'system' ||
+        normalized == 'lan' ||
+        normalized == 'bluetooth') {
       printerType.value = normalized;
     }
   }

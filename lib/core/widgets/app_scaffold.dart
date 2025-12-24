@@ -7,6 +7,8 @@ import '../services/auth_service.dart';
 import '../values/app_dimens.dart';
 import '../values/app_colors.dart';
 import '../../routes/app_routes.dart';
+import 'network_status_banner.dart';
+import 'sync_status_banner.dart';
 
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
@@ -20,10 +22,13 @@ class AppScaffold extends StatelessWidget {
     this.appBarBackgroundColor,
     this.appBarForegroundColor,
     this.bottomNavigationBar,
+    this.floatingActionButton,
+    this.floatingActionButtonLocation,
     this.drawer,
     this.endDrawer,
     this.centerTitle = true,
     this.showUserMenu = true,
+    this.showStatusBanners = true,
   });
 
   final String title;
@@ -35,10 +40,13 @@ class AppScaffold extends StatelessWidget {
   final Color? appBarBackgroundColor;
   final Color? appBarForegroundColor;
   final Widget? bottomNavigationBar;
+  final Widget? floatingActionButton;
+  final FloatingActionButtonLocation? floatingActionButtonLocation;
   final Widget? drawer;
   final Widget? endDrawer;
   final bool centerTitle;
   final bool showUserMenu;
+  final bool showStatusBanners;
 
   @override
   Widget build(BuildContext context) {
@@ -78,10 +86,23 @@ class AppScaffold extends StatelessWidget {
                       clipBehavior: Clip.none,
                       children: [
                         const _BackgroundAccent(),
-                        Padding(padding: const EdgeInsets.all(AppDimens.padding), child: body),
+                        Padding(
+                          padding: const EdgeInsets.all(AppDimens.padding),
+                          child: Column(
+                            children: [
+                              if (showStatusBanners) ...[
+                                const NetworkStatusBanner(),
+                                const SyncStatusBanner(),
+                              ],
+                              Expanded(child: body),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                     bottomNavigationBar: bottomNavigationBar,
+                    floatingActionButton: floatingActionButton,
+                    floatingActionButtonLocation: floatingActionButtonLocation,
                   ),
                 ),
               ],
@@ -120,11 +141,24 @@ class AppScaffold extends StatelessWidget {
             children: [
               const _BackgroundAccent(),
               SafeArea(
-                child: Padding(padding: const EdgeInsets.all(AppDimens.padding), child: body),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppDimens.padding),
+                  child: Column(
+                    children: [
+                      if (showStatusBanners) ...[
+                        const NetworkStatusBanner(),
+                        const SyncStatusBanner(),
+                      ],
+                      Expanded(child: body),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
           bottomNavigationBar: bottomNavigationBar,
+          floatingActionButton: floatingActionButton,
+          floatingActionButtonLocation: floatingActionButtonLocation,
         );
       },
     );

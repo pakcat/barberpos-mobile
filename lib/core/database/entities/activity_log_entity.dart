@@ -14,6 +14,10 @@ class ActivityLogEntity {
   late ActivityLogType type;
   late DateTime timestamp;
   bool synced = false;
+  String? lastError;
+  int attempts = 0;
+  DateTime? lastAttemptAt;
+  DateTime? nextAttemptAt;
 }
 
 extension ActivityLogEntityMapper on ActivityLogEntity {

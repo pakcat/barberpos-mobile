@@ -17,39 +17,50 @@ const OrderOutboxEntitySchema = CollectionSchema(
   name: r'OrderOutboxEntity',
   id: 1025171232726645168,
   properties: {
+    r'attempts': PropertySchema(id: 0, name: r'attempts', type: IsarType.long),
     r'clientRef': PropertySchema(
-      id: 0,
+      id: 1,
       name: r'clientRef',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
+    r'lastAttemptAt': PropertySchema(
+      id: 3,
+      name: r'lastAttemptAt',
+      type: IsarType.dateTime,
+    ),
     r'lastError': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'lastError',
       type: IsarType.string,
     ),
+    r'nextAttemptAt': PropertySchema(
+      id: 5,
+      name: r'nextAttemptAt',
+      type: IsarType.dateTime,
+    ),
     r'payloadJson': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'payloadJson',
       type: IsarType.string,
     ),
     r'pendingCode': PropertySchema(
-      id: 4,
+      id: 7,
       name: r'pendingCode',
       type: IsarType.string,
     ),
     r'serverCode': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'serverCode',
       type: IsarType.string,
     ),
-    r'synced': PropertySchema(id: 6, name: r'synced', type: IsarType.bool),
+    r'synced': PropertySchema(id: 9, name: r'synced', type: IsarType.bool),
     r'syncedAt': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'syncedAt',
       type: IsarType.dateTime,
     ),
@@ -100,14 +111,17 @@ void _orderOutboxEntitySerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.clientRef);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeString(offsets[2], object.lastError);
-  writer.writeString(offsets[3], object.payloadJson);
-  writer.writeString(offsets[4], object.pendingCode);
-  writer.writeString(offsets[5], object.serverCode);
-  writer.writeBool(offsets[6], object.synced);
-  writer.writeDateTime(offsets[7], object.syncedAt);
+  writer.writeLong(offsets[0], object.attempts);
+  writer.writeString(offsets[1], object.clientRef);
+  writer.writeDateTime(offsets[2], object.createdAt);
+  writer.writeDateTime(offsets[3], object.lastAttemptAt);
+  writer.writeString(offsets[4], object.lastError);
+  writer.writeDateTime(offsets[5], object.nextAttemptAt);
+  writer.writeString(offsets[6], object.payloadJson);
+  writer.writeString(offsets[7], object.pendingCode);
+  writer.writeString(offsets[8], object.serverCode);
+  writer.writeBool(offsets[9], object.synced);
+  writer.writeDateTime(offsets[10], object.syncedAt);
 }
 
 OrderOutboxEntity _orderOutboxEntityDeserialize(
@@ -117,15 +131,18 @@ OrderOutboxEntity _orderOutboxEntityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = OrderOutboxEntity();
-  object.clientRef = reader.readString(offsets[0]);
-  object.createdAt = reader.readDateTime(offsets[1]);
+  object.attempts = reader.readLong(offsets[0]);
+  object.clientRef = reader.readString(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[2]);
   object.id = id;
-  object.lastError = reader.readStringOrNull(offsets[2]);
-  object.payloadJson = reader.readString(offsets[3]);
-  object.pendingCode = reader.readString(offsets[4]);
-  object.serverCode = reader.readStringOrNull(offsets[5]);
-  object.synced = reader.readBool(offsets[6]);
-  object.syncedAt = reader.readDateTimeOrNull(offsets[7]);
+  object.lastAttemptAt = reader.readDateTimeOrNull(offsets[3]);
+  object.lastError = reader.readStringOrNull(offsets[4]);
+  object.nextAttemptAt = reader.readDateTimeOrNull(offsets[5]);
+  object.payloadJson = reader.readString(offsets[6]);
+  object.pendingCode = reader.readString(offsets[7]);
+  object.serverCode = reader.readStringOrNull(offsets[8]);
+  object.synced = reader.readBool(offsets[9]);
+  object.syncedAt = reader.readDateTimeOrNull(offsets[10]);
   return object;
 }
 
@@ -137,20 +154,26 @@ P _orderOutboxEntityDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
-    case 5:
       return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 6:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readBool(offset)) as P;
+    case 10:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -256,6 +279,61 @@ extension OrderOutboxEntityQueryWhere
 
 extension OrderOutboxEntityQueryFilter
     on QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QFilterCondition> {
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  attemptsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'attempts', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  attemptsGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'attempts',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  attemptsLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'attempts',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  attemptsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'attempts',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
   clientRefEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -508,6 +586,79 @@ extension OrderOutboxEntityQueryFilter
   }
 
   QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  lastAttemptAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  lastAttemptAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  lastAttemptAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastAttemptAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  lastAttemptAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  lastAttemptAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  lastAttemptAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastAttemptAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
   lastErrorIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -662,6 +813,79 @@ extension OrderOutboxEntityQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'lastError', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  nextAttemptAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'nextAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  nextAttemptAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'nextAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  nextAttemptAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'nextAttemptAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  nextAttemptAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'nextAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  nextAttemptAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'nextAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterFilterCondition>
+  nextAttemptAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'nextAttemptAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }
@@ -1199,6 +1423,20 @@ extension OrderOutboxEntityQueryLinks
 extension OrderOutboxEntityQuerySortBy
     on QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QSortBy> {
   QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  sortByAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  sortByAttemptsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
   sortByClientRef() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'clientRef', Sort.asc);
@@ -1227,6 +1465,20 @@ extension OrderOutboxEntityQuerySortBy
   }
 
   QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  sortByLastAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  sortByLastAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
   sortByLastError() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastError', Sort.asc);
@@ -1237,6 +1489,20 @@ extension OrderOutboxEntityQuerySortBy
   sortByLastErrorDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  sortByNextAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  sortByNextAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.desc);
     });
   }
 
@@ -1314,6 +1580,20 @@ extension OrderOutboxEntityQuerySortBy
 extension OrderOutboxEntityQuerySortThenBy
     on QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QSortThenBy> {
   QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  thenByAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  thenByAttemptsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
   thenByClientRef() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'clientRef', Sort.asc);
@@ -1355,6 +1635,20 @@ extension OrderOutboxEntityQuerySortThenBy
   }
 
   QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  thenByLastAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  thenByLastAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
   thenByLastError() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastError', Sort.asc);
@@ -1365,6 +1659,20 @@ extension OrderOutboxEntityQuerySortThenBy
   thenByLastErrorDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  thenByNextAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QAfterSortBy>
+  thenByNextAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.desc);
     });
   }
 
@@ -1442,6 +1750,13 @@ extension OrderOutboxEntityQuerySortThenBy
 extension OrderOutboxEntityQueryWhereDistinct
     on QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QDistinct> {
   QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QDistinct>
+  distinctByAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'attempts');
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QDistinct>
   distinctByClientRef({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'clientRef', caseSensitive: caseSensitive);
@@ -1456,9 +1771,23 @@ extension OrderOutboxEntityQueryWhereDistinct
   }
 
   QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QDistinct>
+  distinctByLastAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastAttemptAt');
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QDistinct>
   distinctByLastError({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastError', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, OrderOutboxEntity, QDistinct>
+  distinctByNextAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nextAttemptAt');
     });
   }
 
@@ -1506,6 +1835,12 @@ extension OrderOutboxEntityQueryProperty
     });
   }
 
+  QueryBuilder<OrderOutboxEntity, int, QQueryOperations> attemptsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'attempts');
+    });
+  }
+
   QueryBuilder<OrderOutboxEntity, String, QQueryOperations>
   clientRefProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -1520,10 +1855,24 @@ extension OrderOutboxEntityQueryProperty
     });
   }
 
+  QueryBuilder<OrderOutboxEntity, DateTime?, QQueryOperations>
+  lastAttemptAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastAttemptAt');
+    });
+  }
+
   QueryBuilder<OrderOutboxEntity, String?, QQueryOperations>
   lastErrorProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastError');
+    });
+  }
+
+  QueryBuilder<OrderOutboxEntity, DateTime?, QQueryOperations>
+  nextAttemptAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nextAttemptAt');
     });
   }
 

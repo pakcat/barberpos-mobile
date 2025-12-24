@@ -159,9 +159,11 @@ class TransactionController extends GetxController {
     time: e.time,
     amount: e.amount,
     paymentMethod: e.paymentMethod,
-    status: e.status == TransactionStatusEntity.refund
-        ? TransactionStatus.refund
-        : TransactionStatus.paid,
+    status: switch (e.status) {
+      TransactionStatusEntity.refund => TransactionStatus.refund,
+      TransactionStatusEntity.pending => TransactionStatus.pending,
+      TransactionStatusEntity.paid => TransactionStatus.paid,
+    },
     refundedAt: e.refundedAt,
     refundNote: e.refundNote.isEmpty ? null : e.refundNote,
     items: e.items

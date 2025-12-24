@@ -1,17 +1,24 @@
 import 'dart:math';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/values/app_colors.dart';
 import '../../../../core/values/app_dimens.dart';
 import '../../../../core/values/app_strings.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_side_drawer.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/database/local_database.dart';
 import '../../../../routes/app_routes.dart';
 import '../controllers/home_controller.dart';
 import '../../../dashboard/presentation/controllers/dashboard_controller.dart';
 import '../../../transactions/presentation/controllers/transaction_controller.dart';
 import '../../../transactions/presentation/models/transaction_models.dart';
+import '../../../management/data/repositories/management_repository.dart';
+import '../../../product/data/repositories/product_repository.dart';
+import '../../../settings/data/entities/settings_entity.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -62,6 +69,7 @@ class HomeView extends GetView<HomeController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const _ManagerSetupCard(),
                 const SizedBox(height: AppDimens.spacingXl),
                 _SummaryGrid(isTablet: isTablet, maxWidth: constraints.maxWidth, controller: dash),
                 const SizedBox(height: AppDimens.spacingXl),
@@ -446,7 +454,7 @@ class _TopLists extends StatelessWidget {
                         (i) => _TopItem(
                           rank: controller.topStaff.indexOf(i) + 1,
                           title: i['name'],
-                          subtitle: "${i['role']} | ${i['transaksi'] ?? '-'} trx",
+                          subtitle: "${i['count'] ?? i['qty'] ?? '-'} trx | Rp${i['amount'] ?? '-'}",
                           icon: Icons.person_rounded,
                         ),
                       )
@@ -516,8 +524,8 @@ class _TabletTopLists extends StatelessWidget {
                         (i) => _TopItem(
                           rank: controller.topStaff.indexOf(i) + 1,
                           title: i['name'],
-                          subtitle: "${i['role']}",
-                          value: "${i['transaksi'] ?? '-'} Trx",
+                          subtitle: "${i['count'] ?? i['qty'] ?? '-'} trx",
+                          value: "Rp${i['amount'] ?? '-'}",
                           icon: Icons.person_rounded,
                         ),
                       )
@@ -571,6 +579,16 @@ class _PodiumSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimens.spacingXl),
+          if (items.isEmpty) ...[
+            const Text('Belum ada data.', style: TextStyle(color: Colors.white70)),
+            const SizedBox(height: AppDimens.spacingSm),
+            OutlinedButton.icon(
+              onPressed: () => Get.toNamed(Routes.cashier),
+              icon: const Icon(Icons.storefront_rounded),
+              label: const Text('Buat transaksi'),
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.grey700)),
+            ),
+          ] else ...[
           // Podium
           SizedBox(
             height: 200,
@@ -628,10 +646,161 @@ class _PodiumSection extends StatelessWidget {
               ),
             ),
           ],
+          ],
         ],
       ),
     );
   }
+}
+
+class _ManagerSetupCard extends StatelessWidget {
+  const _ManagerSetupCard();
+
+  Future<_SetupState?> _load() async {
+    final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
+    if (auth == null || !auth.isManager) return null;
+
+    final mgmt = Get.find<ManagementRepository>();
+    final productsRepo = Get.find<ProductRepository>();
+    final db = Get.find<LocalDatabase>();
+
+    final categories = await mgmt.getCategories();
+    final products = await productsRepo.getAll();
+    final settings = await db.isar.settingsEntitys.get(1);
+
+    final support = await getApplicationSupportDirectory();
+    final qrisFile = File('${support.path}${Platform.pathSeparator}qris_cache${Platform.pathSeparator}qris.jpg');
+    final qrisExists = await qrisFile.exists();
+
+    return _SetupState(
+      hasCategory: categories.isNotEmpty,
+      hasProduct: products.isNotEmpty,
+      hasPrinter: (settings?.printerType ?? 'system') != 'system',
+      hasQris: qrisExists,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<_SetupState?>(
+      future: _load(),
+      builder: (context, snapshot) {
+        final state = snapshot.data;
+        if (state == null) return const SizedBox.shrink();
+
+        final items = [
+          _SetupItem(
+            title: 'Buat kategori',
+            done: state.hasCategory,
+            actionLabel: 'Buka kategori',
+            onTap: () => Get.toNamed(Routes.categories),
+          ),
+          _SetupItem(
+            title: 'Tambah produk/layanan',
+            done: state.hasProduct,
+            actionLabel: 'Buka produk',
+            onTap: () => Get.toNamed(Routes.products),
+          ),
+          _SetupItem(
+            title: 'Atur printer',
+            done: state.hasPrinter,
+            actionLabel: 'Buka pengaturan',
+            onTap: () => Get.toNamed(Routes.settings),
+          ),
+          _SetupItem(
+            title: 'Upload QRIS',
+            done: state.hasQris,
+            actionLabel: 'Buka pengaturan',
+            onTap: () => Get.toNamed(Routes.settings),
+          ),
+        ];
+
+        final remaining = items.where((e) => !e.done).length;
+        if (remaining <= 0) return const SizedBox.shrink();
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppDimens.spacingLg),
+          decoration: BoxDecoration(
+            color: AppColors.grey800,
+            borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+            border: Border.all(color: AppColors.grey700),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Setup awal ($remaining belum selesai)',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Selesaikan langkah ini supaya aplikasi tidak menampilkan data kosong.',
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: AppDimens.spacingMd),
+              ...items.map(
+                (i) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimens.spacingSm),
+                  child: Row(
+                    children: [
+                      Icon(
+                        i.done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                        color: i.done ? AppColors.green500 : Colors.white54,
+                        size: 18,
+                      ),
+                      const SizedBox(width: AppDimens.spacingSm),
+                      Expanded(
+                        child: Text(i.title, style: const TextStyle(color: Colors.white70)),
+                      ),
+                      if (!i.done)
+                        TextButton(
+                          onPressed: i.onTap,
+                          child: Text(i.actionLabel, style: const TextStyle(color: AppColors.orange500)),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimens.spacingSm),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: () => Get.toNamed(Routes.cashier),
+                  icon: const Icon(Icons.storefront_rounded),
+                  label: const Text('Buat transaksi pertama'),
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.grey700)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SetupState {
+  _SetupState({
+    required this.hasCategory,
+    required this.hasProduct,
+    required this.hasPrinter,
+    required this.hasQris,
+  });
+
+  final bool hasCategory;
+  final bool hasProduct;
+  final bool hasPrinter;
+  final bool hasQris;
+}
+
+class _SetupItem {
+  _SetupItem({required this.title, required this.done, required this.actionLabel, required this.onTap});
+
+  final String title;
+  final bool done;
+  final String actionLabel;
+  final VoidCallback onTap;
 }
 
 class _PodiumItem extends StatelessWidget {
@@ -733,49 +902,64 @@ class _TopCard extends StatelessWidget {
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: AppDimens.spacingSm),
-          ...items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: AppDimens.spacingSm),
-              child: Row(
-                children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '${item.rank}',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+          if (items.isEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Belum ada data.', style: TextStyle(color: Colors.white70)),
+                const SizedBox(height: AppDimens.spacingSm),
+                OutlinedButton.icon(
+                  onPressed: () => Get.toNamed(Routes.cashier),
+                  icon: const Icon(Icons.storefront_rounded),
+                  label: const Text('Buat transaksi'),
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.grey700)),
+                ),
+              ],
+            )
+          else
+            ...items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: AppDimens.spacingSm),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${item.rank}',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: AppDimens.spacingSm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          item.subtitle,
-                          style: const TextStyle(color: Colors.white54, fontSize: 12),
-                        ),
-                      ],
+                    const SizedBox(width: AppDimens.spacingSm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            item.subtitle,
+                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -806,6 +990,42 @@ class _SalesChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (data.isEmpty || labels.isEmpty) {
+      return Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.grey900,
+          borderRadius: BorderRadius.circular(AppDimens.cornerRadius),
+          border: Border.all(color: AppColors.grey700),
+        ),
+        padding: const EdgeInsets.all(AppDimens.spacingLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Belum ada data penjualan.',
+              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: AppDimens.spacingSm),
+            const Text(
+              'Buat transaksi pertama agar grafik penjualan muncul.',
+              style: TextStyle(color: Colors.white54),
+            ),
+            const SizedBox(height: AppDimens.spacingMd),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () => Get.toNamed(Routes.cashier),
+                icon: const Icon(Icons.storefront_rounded),
+                label: const Text('Buka kasir'),
+                style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.grey700)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       children: [
         Expanded(
@@ -841,7 +1061,15 @@ class _ChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (data.length < 2) return;
+    if (data.isEmpty) return;
+
+    if (data.length == 1) {
+      final paintDot = Paint()..color = lineColor..style = PaintingStyle.fill;
+      final y = size.height / 2;
+      // Place a single point in the center; keeps UI readable when only 1 data exists.
+      canvas.drawCircle(Offset(size.width / 2, y), 4.5, paintDot);
+      return;
+    }
 
     final maxValue = data.reduce(max);
     final minValue = data.reduce(min);

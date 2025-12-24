@@ -1,5 +1,8 @@
-﻿import 'package:isar_community/isar.dart';
+import 'package:isar_community/isar.dart';
 
+import '../../modules/cashier/data/entities/cart_item_entity.dart';
+import '../../modules/cashier/data/entities/order_outbox_entity.dart';
+import '../database/entities/activity_log_entity.dart';
 import '../database/entities/session_entity.dart';
 
 class SessionService {
@@ -17,40 +20,53 @@ class SessionService {
 
   Future<void> saveUserId(int? userId) async {
     await _isar.writeTxn(() async {
-      await _isar.sessionEntitys.put(SessionEntity()
-        ..id = 1
-        ..userId = userId
-        ..token = (await load())?.token
-        ..refreshToken = (await load())?.refreshToken
-        ..expiresAt = (await load())?.expiresAt);
+      await _isar.sessionEntitys.put(
+        SessionEntity()
+          ..id = 1
+          ..userId = userId
+          ..token = (await load())?.token
+          ..refreshToken = (await load())?.refreshToken
+          ..expiresAt = (await load())?.expiresAt,
+      );
     });
   }
 
-  Future<void> saveToken({required String token, DateTime? expiresAt, int? userId}) async {
+  Future<void> saveToken({
+    required String token,
+    DateTime? expiresAt,
+    int? userId,
+  }) async {
     await _isar.writeTxn(() async {
-      await _isar.sessionEntitys.put(SessionEntity()
-        ..id = 1
-        ..token = token
-        ..expiresAt = expiresAt
-        ..userId = userId ?? (await load())?.userId);
+      await _isar.sessionEntitys.put(
+        SessionEntity()
+          ..id = 1
+          ..token = token
+          ..expiresAt = expiresAt
+          ..userId = userId ?? (await load())?.userId,
+      );
     });
   }
 
   Future<void> saveRefreshToken({required String refreshToken}) async {
     await _isar.writeTxn(() async {
-      await _isar.sessionEntitys.put(SessionEntity()
-        ..id = 1
-        ..refreshToken = refreshToken
-        ..token = (await load())?.token
-        ..expiresAt = (await load())?.expiresAt
-        ..userId = (await load())?.userId);
+      await _isar.sessionEntitys.put(
+        SessionEntity()
+          ..id = 1
+          ..refreshToken = refreshToken
+          ..token = (await load())?.token
+          ..expiresAt = (await load())?.expiresAt
+          ..userId = (await load())?.userId,
+      );
     });
   }
 
-  Future<void> clear() async {
+  Future<void> clear({bool purgeLocalData = true}) async {
     await _isar.writeTxn(() async {
       await _isar.sessionEntitys.put(SessionEntity()..id = 1);
+      if (!purgeLocalData) return;
+      await _isar.activityLogEntitys.clear();
+      await _isar.cartItemEntitys.clear();
+      await _isar.orderOutboxEntitys.clear();
     });
   }
 }
-

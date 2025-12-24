@@ -14,5 +14,8 @@ class StockAdjustmentOutboxEntity {
 
   late DateTime createdAt;
   bool synced = false;
+  String? lastError;
+  int attempts = 0;
+  DateTime? lastAttemptAt;
+  DateTime? nextAttemptAt;
 }
-

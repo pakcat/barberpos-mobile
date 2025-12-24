@@ -18,16 +18,32 @@ const ActivityLogEntitySchema = CollectionSchema(
   id: 4113337747101717565,
   properties: {
     r'actor': PropertySchema(id: 0, name: r'actor', type: IsarType.string),
-    r'message': PropertySchema(id: 1, name: r'message', type: IsarType.string),
-    r'synced': PropertySchema(id: 2, name: r'synced', type: IsarType.bool),
-    r'timestamp': PropertySchema(
+    r'attempts': PropertySchema(id: 1, name: r'attempts', type: IsarType.long),
+    r'lastAttemptAt': PropertySchema(
+      id: 2,
+      name: r'lastAttemptAt',
+      type: IsarType.dateTime,
+    ),
+    r'lastError': PropertySchema(
       id: 3,
+      name: r'lastError',
+      type: IsarType.string,
+    ),
+    r'message': PropertySchema(id: 4, name: r'message', type: IsarType.string),
+    r'nextAttemptAt': PropertySchema(
+      id: 5,
+      name: r'nextAttemptAt',
+      type: IsarType.dateTime,
+    ),
+    r'synced': PropertySchema(id: 6, name: r'synced', type: IsarType.bool),
+    r'timestamp': PropertySchema(
+      id: 7,
       name: r'timestamp',
       type: IsarType.dateTime,
     ),
-    r'title': PropertySchema(id: 4, name: r'title', type: IsarType.string),
+    r'title': PropertySchema(id: 8, name: r'title', type: IsarType.string),
     r'type': PropertySchema(
-      id: 5,
+      id: 9,
       name: r'type',
       type: IsarType.byte,
       enumMap: _ActivityLogEntitytypeEnumValueMap,
@@ -56,6 +72,12 @@ int _activityLogEntityEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.actor.length * 3;
+  {
+    final value = object.lastError;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.message.length * 3;
   bytesCount += 3 + object.title.length * 3;
   return bytesCount;
@@ -68,11 +90,15 @@ void _activityLogEntitySerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.actor);
-  writer.writeString(offsets[1], object.message);
-  writer.writeBool(offsets[2], object.synced);
-  writer.writeDateTime(offsets[3], object.timestamp);
-  writer.writeString(offsets[4], object.title);
-  writer.writeByte(offsets[5], object.type.index);
+  writer.writeLong(offsets[1], object.attempts);
+  writer.writeDateTime(offsets[2], object.lastAttemptAt);
+  writer.writeString(offsets[3], object.lastError);
+  writer.writeString(offsets[4], object.message);
+  writer.writeDateTime(offsets[5], object.nextAttemptAt);
+  writer.writeBool(offsets[6], object.synced);
+  writer.writeDateTime(offsets[7], object.timestamp);
+  writer.writeString(offsets[8], object.title);
+  writer.writeByte(offsets[9], object.type.index);
 }
 
 ActivityLogEntity _activityLogEntityDeserialize(
@@ -83,13 +109,17 @@ ActivityLogEntity _activityLogEntityDeserialize(
 ) {
   final object = ActivityLogEntity();
   object.actor = reader.readString(offsets[0]);
+  object.attempts = reader.readLong(offsets[1]);
   object.id = id;
-  object.message = reader.readString(offsets[1]);
-  object.synced = reader.readBool(offsets[2]);
-  object.timestamp = reader.readDateTime(offsets[3]);
-  object.title = reader.readString(offsets[4]);
+  object.lastAttemptAt = reader.readDateTimeOrNull(offsets[2]);
+  object.lastError = reader.readStringOrNull(offsets[3]);
+  object.message = reader.readString(offsets[4]);
+  object.nextAttemptAt = reader.readDateTimeOrNull(offsets[5]);
+  object.synced = reader.readBool(offsets[6]);
+  object.timestamp = reader.readDateTime(offsets[7]);
+  object.title = reader.readString(offsets[8]);
   object.type =
-      _ActivityLogEntitytypeValueEnumMap[reader.readByteOrNull(offsets[5])] ??
+      _ActivityLogEntitytypeValueEnumMap[reader.readByteOrNull(offsets[9])] ??
       ActivityLogType.info;
   return object;
 }
@@ -104,14 +134,22 @@ P _activityLogEntityDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 2:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 3:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 6:
+      return (reader.readBool(offset)) as P;
+    case 7:
+      return (reader.readDateTime(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
       return (_ActivityLogEntitytypeValueEnumMap[reader.readByteOrNull(
                 offset,
               )] ??
@@ -374,6 +412,61 @@ extension ActivityLogEntityQueryFilter
   }
 
   QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  attemptsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'attempts', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  attemptsGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'attempts',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  attemptsLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'attempts',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  attemptsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'attempts',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
   idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -424,6 +517,238 @@ extension ActivityLogEntityQueryFilter
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastAttemptAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastAttemptAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastAttemptAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastAttemptAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastAttemptAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastAttemptAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastAttemptAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastAttemptAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastError'),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastError'),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastError',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'lastError',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastError', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  lastErrorIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'lastError', value: ''),
       );
     });
   }
@@ -565,6 +890,79 @@ extension ActivityLogEntityQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'message', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  nextAttemptAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'nextAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  nextAttemptAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'nextAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  nextAttemptAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'nextAttemptAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  nextAttemptAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'nextAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  nextAttemptAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'nextAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterFilterCondition>
+  nextAttemptAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'nextAttemptAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }
@@ -853,6 +1251,48 @@ extension ActivityLogEntityQuerySortBy
   }
 
   QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  sortByAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  sortByAttemptsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  sortByLastAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  sortByLastAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  sortByLastError() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastError', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  sortByLastErrorDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
   sortByMessage() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'message', Sort.asc);
@@ -863,6 +1303,20 @@ extension ActivityLogEntityQuerySortBy
   sortByMessageDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'message', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  sortByNextAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  sortByNextAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.desc);
     });
   }
 
@@ -939,6 +1393,20 @@ extension ActivityLogEntityQuerySortThenBy
     });
   }
 
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  thenByAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  thenByAttemptsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.desc);
+    });
+  }
+
   QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -953,6 +1421,34 @@ extension ActivityLogEntityQuerySortThenBy
   }
 
   QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  thenByLastAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  thenByLastAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  thenByLastError() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastError', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  thenByLastErrorDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
   thenByMessage() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'message', Sort.asc);
@@ -963,6 +1459,20 @@ extension ActivityLogEntityQuerySortThenBy
   thenByMessageDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'message', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  thenByNextAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QAfterSortBy>
+  thenByNextAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.desc);
     });
   }
 
@@ -1033,9 +1543,37 @@ extension ActivityLogEntityQueryWhereDistinct
   }
 
   QueryBuilder<ActivityLogEntity, ActivityLogEntity, QDistinct>
+  distinctByAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'attempts');
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QDistinct>
+  distinctByLastAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastAttemptAt');
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QDistinct>
+  distinctByLastError({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastError', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QDistinct>
   distinctByMessage({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'message', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, ActivityLogEntity, QDistinct>
+  distinctByNextAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nextAttemptAt');
     });
   }
 
@@ -1082,9 +1620,36 @@ extension ActivityLogEntityQueryProperty
     });
   }
 
+  QueryBuilder<ActivityLogEntity, int, QQueryOperations> attemptsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'attempts');
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, DateTime?, QQueryOperations>
+  lastAttemptAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastAttemptAt');
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, String?, QQueryOperations>
+  lastErrorProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastError');
+    });
+  }
+
   QueryBuilder<ActivityLogEntity, String, QQueryOperations> messageProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'message');
+    });
+  }
+
+  QueryBuilder<ActivityLogEntity, DateTime?, QQueryOperations>
+  nextAttemptAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nextAttemptAt');
     });
   }
 

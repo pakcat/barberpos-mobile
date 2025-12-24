@@ -22,6 +22,13 @@ class ReportsController extends GetxController {
   final TransactionRepository _txRepo;
   final RxList<FinanceEntry> entries = <FinanceEntry>[].obs;
   final RxList<StylistPerformance> stylistReports = <StylistPerformance>[].obs;
+  final RxList<CustomerReport> customerReports = <CustomerReport>[].obs;
+  final RxList<TransactionReportItem> transactionReports = <TransactionReportItem>[].obs;
+
+  int get transactionCount => transactionReports.length;
+  int get paidCount => transactionReports.where((e) => e.status == ReportTransactionStatus.paid).length;
+  int get refundCount => transactionReports.where((e) => e.status == ReportTransactionStatus.refund).length;
+  int get pendingCount => transactionReports.where((e) => e.status == ReportTransactionStatus.pending).length;
 
   int get totalRevenue => filteredEntries
       .where((e) => e.type == EntryType.revenue)
@@ -58,13 +65,74 @@ class ReportsController extends GetxController {
     } catch (_) {
       entries.clear();
     }
-    await _loadStylistReport(range);
+
+    try {
+      final txs = await _txRepo.getRange(range.start, range.end);
+      _applyTransactionReports(txs);
+    } catch (_) {
+      stylistReports.clear();
+      customerReports.clear();
+      transactionReports.clear();
+    }
     loading.value = false;
   }
 
-  Future<void> _loadStylistReport(DateTimeRange range) async {
-    final txs = await _txRepo.getRange(range.start, range.end);
+  void _applyTransactionReports(List<TransactionEntity> txs) {
     stylistReports.assignAll(_buildStylistPerf(txs));
+    customerReports.assignAll(_buildCustomerReport(txs));
+    transactionReports.assignAll(_buildTransactionReport(txs));
+  }
+
+  List<TransactionReportItem> _buildTransactionReport(List<TransactionEntity> txs) {
+    final sorted = [...txs]..sort((a, b) => b.date.compareTo(a.date));
+    return sorted.map((tx) {
+      final status = switch (tx.status) {
+        TransactionStatusEntity.paid => ReportTransactionStatus.paid,
+        TransactionStatusEntity.refund => ReportTransactionStatus.refund,
+        TransactionStatusEntity.pending => ReportTransactionStatus.pending,
+      };
+      final customerName = tx.customer?.name.trim().isNotEmpty == true ? tx.customer!.name.trim() : '-';
+      final stylist = tx.stylist.trim().isNotEmpty ? tx.stylist.trim() : '-';
+      final itemsCount = tx.items.fold<int>(0, (sum, e) => sum + e.qty);
+      return TransactionReportItem(
+        code: tx.code,
+        date: tx.date,
+        time: tx.time,
+        amount: tx.amount,
+        paymentMethod: tx.paymentMethod,
+        status: status,
+        itemsCount: itemsCount,
+        stylist: stylist,
+        customerName: customerName,
+      );
+    }).toList();
+  }
+
+  List<CustomerReport> _buildCustomerReport(List<TransactionEntity> txs) {
+    final Map<String, _CustomerAgg> agg = {};
+    for (final tx in txs) {
+      final customer = tx.customer;
+      final rawName = (customer?.name ?? '').trim();
+      if (rawName.isEmpty) continue;
+      final key = rawName.toLowerCase();
+      final a = agg.putIfAbsent(key, () => _CustomerAgg(name: rawName, phone: (customer?.phone ?? '').trim()));
+      a.totalSpent += tx.amount;
+      a.totalTransactions += 1;
+      if (tx.date.isAfter(a.lastVisit)) a.lastVisit = tx.date;
+    }
+    final list = agg.values
+        .map(
+          (c) => CustomerReport(
+            name: c.name,
+            phone: c.phone.isEmpty ? null : c.phone,
+            totalSpent: c.totalSpent,
+            totalTransactions: c.totalTransactions,
+            lastVisit: c.lastVisit,
+          ),
+        )
+        .toList();
+    list.sort((a, b) => b.totalSpent.compareTo(a.totalSpent));
+    return list;
   }
 
   List<StylistPerformance> _buildStylistPerf(List<TransactionEntity> txs) {
@@ -120,9 +188,11 @@ class ReportsController extends GetxController {
     return 'Transaksi tertinggi: ${highest.title} sebesar Rp${highest.amount}.';
   }
 
-  void addEntry(FinanceEntry entry) {
+  Future<bool> addEntry(FinanceEntry entry) async {
     entries.add(entry);
-    repo.upsert(_toEntity(entry));
+    final res = await repo.upsert(_toEntity(entry));
+    // If remote save failed, keep local row, user can refresh/retry later.
+    return res.synced;
   }
 
   Future<String> exportCsv() async {
@@ -249,4 +319,14 @@ class _StylistAgg {
   int totalTransactions = 0;
   int totalItems = 0;
   final Map<String, int> serviceCount = {};
+}
+
+class _CustomerAgg {
+  _CustomerAgg({required this.name, required this.phone});
+
+  final String name;
+  final String phone;
+  int totalSpent = 0;
+  int totalTransactions = 0;
+  DateTime lastVisit = DateTime.fromMillisecondsSinceEpoch(0);
 }

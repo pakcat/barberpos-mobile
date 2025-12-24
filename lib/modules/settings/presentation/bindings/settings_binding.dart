@@ -8,6 +8,7 @@ import '../../../../core/services/session_service.dart';
 import '../../data/datasources/settings_local_data_source.dart';
 import '../../data/datasources/settings_remote_data_source.dart';
 import '../../data/repositories/settings_repository_impl.dart';
+import '../../data/repositories/qris_outbox_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/usecases/get_settings.dart';
 import '../../domain/usecases/save_settings.dart';
@@ -38,6 +39,9 @@ class SettingsBinding extends Bindings {
     }, permanent: true);
 
     Get.lazyPut<SettingsLocalDataSource>(() => SettingsLocalDataSourceImpl(dbReady));
+    if (!Get.isRegistered<QrisOutboxRepository>()) {
+      Get.put<QrisOutboxRepository>(QrisOutboxRepository(dbReady), permanent: true);
+    }
 
     SettingsRemoteDataSource? restRemote;
     final config = Get.find<AppConfig>();
@@ -51,6 +55,7 @@ class SettingsBinding extends Bindings {
         restRemote: restRemote,
         config: config,
         auth: Get.find<AuthService>(),
+        qrisOutbox: Get.find<QrisOutboxRepository>(),
       ),
     );
     Get.lazyPut<GetSettingsUseCase>(() => GetSettingsUseCase(Get.find<SettingsRepository>()));

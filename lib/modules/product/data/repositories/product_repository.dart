@@ -13,16 +13,20 @@ class ProductRepository {
     if (restRemote != null) {
       try {
         final items = await restRemote!.fetchAll();
-        await replaceAll(items);
-        return items;
+        await replaceAllFromRemote(items);
+        return _isar.productEntitys.filter().deletedEqualTo(false).findAll();
       } catch (_) {
         // Fallback to cached data
       }
     }
-    return _isar.productEntitys.where().findAll();
+    return _isar.productEntitys.filter().deletedEqualTo(false).findAll();
   }
 
   Future<ProductEntity?> getById(Id id) => _isar.productEntitys.get(id);
+
+  Future<Id> upsertLocal(ProductEntity product) async {
+    return _isar.writeTxn(() => _isar.productEntitys.put(product));
+  }
 
   Future<Id> upsert(ProductEntity product) async {
     final originalId = product.id;
@@ -43,11 +47,86 @@ class ProductRepository {
     });
   }
 
-  Future<void> replaceAll(Iterable<ProductEntity> items) async {
+  Future<void> replaceAll(Iterable<ProductEntity> items) async => replaceAllFromRemote(items);
+
+  Future<void> replaceAllFromRemote(Iterable<ProductEntity> remoteItems) async {
+    final remote = remoteItems.toList();
+    final localUnsynced = await _isar.productEntitys
+        .filter()
+        .syncStatusEqualTo(ProductSyncStatusEntity.pending)
+        .or()
+        .syncStatusEqualTo(ProductSyncStatusEntity.failed)
+        .or()
+        .deletedEqualTo(true)
+        .findAll();
+
+    final localById = {for (final p in localUnsynced) p.id: p};
+    final merged = <ProductEntity>[];
+    for (final r in remote) {
+      final local = localById[r.id];
+      if (local != null) {
+        merged.add(local);
+      } else {
+        merged.add(r);
+      }
+    }
+    // Add local-only unsynced that aren't in remote
+    for (final p in localUnsynced) {
+      if (!remote.any((r) => r.id == p.id)) {
+        merged.add(p);
+      }
+    }
+
     await _isar.writeTxn(() async {
       await _isar.productEntitys.clear();
-      await _isar.productEntitys.putAll(items.toList());
+      await _isar.productEntitys.putAll(merged);
     });
+  }
+
+  Future<void> markSyncedFromServer({
+    required int localId,
+    required ProductEntity server,
+  }) async {
+    final cleaned = server
+      ..syncStatus = ProductSyncStatusEntity.synced
+      ..syncError = ''
+      ..deleted = false;
+
+    await _isar.writeTxn(() async {
+      // Remove local temp row if needed.
+      if (localId != cleaned.id) {
+        await _isar.productEntitys.delete(localId);
+      }
+      await _isar.productEntitys.put(cleaned);
+    });
+  }
+
+  Future<void> markPending(int id) async {
+    final existing = await _isar.productEntitys.get(id);
+    if (existing == null) return;
+    existing
+      ..syncStatus = ProductSyncStatusEntity.pending
+      ..syncError = '';
+    await _isar.writeTxn(() => _isar.productEntitys.put(existing));
+  }
+
+  Future<void> markFailed(int id, String message) async {
+    final existing = await _isar.productEntitys.get(id);
+    if (existing == null) return;
+    existing
+      ..syncStatus = ProductSyncStatusEntity.failed
+      ..syncError = message.trim();
+    await _isar.writeTxn(() => _isar.productEntitys.put(existing));
+  }
+
+  Future<void> markDeletedPending(int id) async {
+    final existing = await _isar.productEntitys.get(id);
+    if (existing == null) return;
+    existing
+      ..deleted = true
+      ..syncStatus = ProductSyncStatusEntity.pending
+      ..syncError = '';
+    await _isar.writeTxn(() => _isar.productEntitys.put(existing));
   }
 
   Future<void> delete(Id id) async {

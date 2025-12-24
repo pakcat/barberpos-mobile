@@ -15,8 +15,9 @@ class EmployeeFormView extends GetView<StaffController> {
     final id = Get.arguments as String?;
     final existing = id != null ? controller.getById(id) : null;
     final name = TextEditingController(text: existing?.name ?? '');
-    final roles = ['Admin', 'Manager', 'Kasir', 'Barber'];
-    String selectedRole = existing?.role ?? roles.first;
+    final roles = ['Admin', 'Kasir', 'Barber'];
+    final initialRole = roles.contains(existing?.role) ? existing!.role : roles.first;
+    String selectedRole = initialRole;
     final phone = TextEditingController(text: existing?.phone ?? '');
     final email = TextEditingController(text: existing?.email ?? '');
     final pin = TextEditingController(text: existing?.pin ?? '');

@@ -36,10 +36,10 @@ class StubReportsRepository implements ReportsRepository {
   }
 
   @override
-  Future<Id> upsert(FinanceEntryEntity entry) async {
+  Future<FinanceUpsertResult> upsert(FinanceEntryEntity entry) async {
     _entries.removeWhere((e) => e.id == entry.id);
     _entries.add(entry);
-    return entry.id;
+    return FinanceUpsertResult(localId: entry.id, synced: false);
   }
 
   @override

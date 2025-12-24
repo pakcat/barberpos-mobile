@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:dio/dio.dart';
+import 'dart:typed_data';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/network/network_service.dart';
@@ -70,7 +71,11 @@ class CashierController extends GetxController {
            paymentRemoteDataSource ??
            PaymentRemoteDataSource(network ?? Get.find<NetworkService>()),
        _config = config ?? Get.find<AppConfig>(),
-       _orderOutbox = orderOutbox ?? (Get.isRegistered<OrderOutboxRepository>() ? Get.find<OrderOutboxRepository>() : null),
+       _orderOutbox =
+           orderOutbox ??
+           (Get.isRegistered<OrderOutboxRepository>()
+               ? Get.find<OrderOutboxRepository>()
+               : null),
        _productRepo =
            productRepository ??
            (Get.isRegistered<ProductRepository>()
@@ -382,10 +387,13 @@ class CashierController extends GetxController {
 
       final payload = _buildPayload();
       OrderResponseDto response;
+      var queuedForSync = false;
       if (_useRest) {
         try {
           response = await _remote.submitOrder(payload);
-        } on DioException catch (_) {
+        } on DioException catch (e) {
+          // Only queue for later sync when it's a connectivity/timeout problem (no server response).
+          if (e.response != null) rethrow;
           final outbox = _orderOutbox;
           if (paymentMethod.value != PaymentMethod.cash || outbox == null) {
             rethrow;
@@ -396,8 +404,15 @@ class CashierController extends GetxController {
             pendingCode: pendingCode,
             payload: payload.toJson(),
           );
-          response = OrderResponseDto.fallback(payload: payload, generatedId: pendingCode);
-          _showSnack('Offline', 'Order disimpan dan akan disinkronkan otomatis.');
+          response = OrderResponseDto.fallback(
+            payload: payload,
+            generatedId: pendingCode,
+          );
+          queuedForSync = true;
+          _showSnack(
+            'Offline',
+            'Order disimpan dan akan disinkronkan otomatis.',
+          );
         }
       } else {
         response = OrderResponseDto.fallback(
@@ -405,11 +420,22 @@ class CashierController extends GetxController {
           generatedId: _localOrderCode(),
         );
       }
-      await _persistTransaction(response, payload, intent: intent);
-      await _consumeMembershipQuota(payload);
-      await _deductStockFromCart();
-      await _recordFinanceEntries(payload, transactionCode: response.code.isNotEmpty ? response.code : response.id);
-      await _autoPrintReceipt(response: response, payload: payload);
+      await _persistTransaction(
+        response,
+        payload,
+        intent: intent,
+        status: queuedForSync ? TransactionStatusEntity.pending : TransactionStatusEntity.paid,
+      );
+      // Only apply side effects (stock, membership, finance) when the transaction is confirmed (not queued/pending).
+      if (!queuedForSync) {
+        await _consumeMembershipQuota(payload);
+        await _deductStockFromCart();
+        await _recordFinanceEntries(
+          payload,
+          transactionCode: response.code.isNotEmpty ? response.code : response.id,
+        );
+        await _autoPrintReceipt(response: response, payload: payload);
+      }
       _logs.add(
         title: 'Checkout',
         message:
@@ -450,7 +476,10 @@ class CashierController extends GetxController {
     } catch (_) {}
   }
 
-  Future<void> _recordFinanceEntries(OrderPayloadDto payload, {required String transactionCode}) async {
+  Future<void> _recordFinanceEntries(
+    OrderPayloadDto payload, {
+    required String transactionCode,
+  }) async {
     try {
       final reportsRepo = _reportsRepo;
       if (reportsRepo == null) return;
@@ -499,7 +528,14 @@ class CashierController extends GetxController {
         paymentMethod: _labelPayment(paymentMethod.value),
         status: TransactionStatus.paid,
         items: payload.items
-            .map((e) => TransactionLine(name: e.name, category: e.category, price: e.price, qty: e.qty))
+            .map(
+              (e) => TransactionLine(
+                name: e.name,
+                category: e.category,
+                price: e.price,
+                qty: e.qty,
+              ),
+            )
             .toList(),
         customer: TransactionCustomer(
           name: selectedCustomer.value == 'Guest' ? '' : selectedCustomer.value,
@@ -626,6 +662,7 @@ class CashierController extends GetxController {
   }
 
   Future<bool> _confirmQris(PaymentIntentDto intent) async {
+    final qrisFuture = _fetchQrisImageBytes();
     return await Get.dialog<bool>(
           AlertDialog(
             title: const Text('Pembayaran QRIS'),
@@ -635,16 +672,39 @@ class CashierController extends GetxController {
               children: [
                 const Text('Tunjukkan QR ini ke customer.'),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFDDDDDD)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    intent.qrString ?? 'QR siap',
-                    style: const TextStyle(fontSize: 12),
-                  ),
+                FutureBuilder<Uint8List?>(
+                  future: qrisFuture,
+                  builder: (context, snapshot) {
+                    final bytes = snapshot.data;
+                    if (bytes != null && bytes.isNotEmpty) {
+                      return Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Image.memory(
+                            bytes,
+                            width: 240,
+                            height: 240,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      );
+                    }
+                    return Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFDDDDDD)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        intent.qrString ?? 'QR siap',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -666,6 +726,24 @@ class CashierController extends GetxController {
           ),
         ) ??
         false;
+  }
+
+  Future<Uint8List?> _fetchQrisImageBytes() async {
+    try {
+      final dio = Get.find<NetworkService>().dio;
+      final res = await dio.get<List<int>>(
+        '/settings/qris',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = res.data ?? <int>[];
+      if (bytes.isEmpty) return null;
+      return Uint8List.fromList(bytes);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<bool> _confirmCard(PaymentIntentDto intent) async {
@@ -704,6 +782,7 @@ class CashierController extends GetxController {
     OrderResponseDto response,
     OrderPayloadDto payload, {
     PaymentIntentDto? intent,
+    required TransactionStatusEntity status,
   }) async {
     final now = DateTime.now();
     final timeStr =
@@ -730,7 +809,7 @@ class CashierController extends GetxController {
       ..operatorName = _auth.currentUser?.name ?? 'Kasir'
       ..paymentIntentId = intent?.intentId ?? intent?.id
       ..paymentReference = intent?.reference
-      ..status = TransactionStatusEntity.paid
+      ..status = status
       ..items = items
       ..customer =
           (selectedCustomer.value.isNotEmpty &&
@@ -773,13 +852,29 @@ class CashierController extends GetxController {
         return;
       }
       final localProducts = await productRepo.getAll();
-      services.assignAll(localProducts.map(_mapProduct));
+      final eligible = _useRest
+          ? localProducts.where((p) => p.syncStatus == ProductSyncStatusEntity.synced && !p.deleted)
+          : localProducts.where((p) => !p.deleted);
+      services.assignAll(eligible.map(_mapProduct));
     } catch (_) {
       services.clear();
     }
   }
 
   Future<void> _loadStylists() async {
+    if (_auth.isStaffOnly) {
+      final name = _auth.currentUser?.name.trim() ?? '';
+      if (name.isNotEmpty) {
+        stylists
+          ..clear()
+          ..add(Stylist(id: null, name: name, avatar: ''));
+        selectedStylist
+          ..value = name
+          ..refresh();
+        selectedStylistId.value = null;
+        return;
+      }
+    }
     try {
       final staffRepo = _staffRepo;
       if (staffRepo != null) {

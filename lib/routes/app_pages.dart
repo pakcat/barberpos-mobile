@@ -42,8 +42,10 @@ import '../modules/reports/presentation/controllers/reports_controller.dart';
 import '../modules/reports/presentation/views/finance_form_view.dart';
 import '../modules/reports/presentation/views/reports_view.dart';
 import '../modules/settings/presentation/bindings/settings_binding.dart';
+import '../modules/settings/presentation/bindings/bluetooth_printer_binding.dart';
 import '../modules/settings/presentation/controllers/settings_controller.dart';
 import '../modules/settings/presentation/views/settings_view.dart';
+import '../modules/settings/presentation/views/bluetooth_printer_view.dart';
 import '../modules/closing/presentation/bindings/closing_binding.dart';
 import '../modules/closing/presentation/controllers/closing_controller.dart';
 import '../modules/closing/presentation/views/closing_view.dart';
@@ -61,6 +63,8 @@ import '../modules/membership/presentation/views/membership_view.dart';
 import '../modules/notifications/presentation/bindings/notification_binding.dart';
 import '../modules/notifications/presentation/controllers/notification_controller.dart';
 import '../modules/notifications/presentation/views/notification_view.dart';
+import '../modules/sync/presentation/bindings/sync_binding.dart';
+import '../modules/sync/presentation/views/sync_view.dart';
 import '../modules/splash/presentation/bindings/splash_binding.dart';
 import '../modules/splash/presentation/controllers/splash_controller.dart';
 import '../modules/splash/presentation/views/splash_view.dart';
@@ -217,6 +221,12 @@ class AppPages {
       binding: SettingsBinding(),
       middlewares: [AuthMiddleware(requireManager: true)],
     ),
+    GetPage(
+      name: Routes.bluetoothPrinter,
+      page: () => const BluetoothPrinterView(),
+      binding: BluetoothPrinterBinding(),
+      middlewares: [AuthMiddleware(requireManager: true)],
+    ),
     GetPage<ClosingController>(
       name: Routes.closing,
       page: () => const ClosingView(),
@@ -258,6 +268,12 @@ class AppPages {
       page: () => const NotificationView(),
       binding: NotificationBinding(),
       middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: Routes.sync,
+      page: () => const SyncView(),
+      binding: SyncBinding(),
+      middlewares: [AuthMiddleware(requireManager: true)],
     ),
   ];
 }

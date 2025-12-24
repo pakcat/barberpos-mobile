@@ -41,5 +41,6 @@ class TransactionEntity {
   String stylist = '';
 }
 
-enum TransactionStatusEntity { paid, refund }
+// Keep new values appended to preserve Isar enum indices for existing data.
+enum TransactionStatusEntity { paid, refund, pending }
 

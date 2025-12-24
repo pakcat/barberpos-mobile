@@ -11,7 +11,7 @@ class FakeSessionService implements SessionService {
   Future<SessionEntity?> load() async => SessionEntity()..id = 1;
 
   @override
-  Future<void> clear() async {
+  Future<void> clear({bool purgeLocalData = true}) async {
     _userId = null;
     _token = null;
     _refresh = null;
@@ -36,7 +36,11 @@ class FakeSessionService implements SessionService {
   }
 
   @override
-  Future<void> saveToken({required String token, DateTime? expiresAt, int? userId}) async {
+  Future<void> saveToken({
+    required String token,
+    DateTime? expiresAt,
+    int? userId,
+  }) async {
     _token = token;
     _exp = expiresAt;
     _userId = userId ?? _userId;

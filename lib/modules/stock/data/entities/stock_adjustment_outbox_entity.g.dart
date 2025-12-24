@@ -18,21 +18,37 @@ const StockAdjustmentOutboxEntitySchema = CollectionSchema(
   name: r'StockAdjustmentOutboxEntity',
   id: 8597487966296944590,
   properties: {
-    r'change': PropertySchema(id: 0, name: r'change', type: IsarType.long),
+    r'attempts': PropertySchema(id: 0, name: r'attempts', type: IsarType.long),
+    r'change': PropertySchema(id: 1, name: r'change', type: IsarType.long),
     r'createdAt': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'note': PropertySchema(id: 2, name: r'note', type: IsarType.string),
-    r'productId': PropertySchema(
+    r'lastAttemptAt': PropertySchema(
       id: 3,
+      name: r'lastAttemptAt',
+      type: IsarType.dateTime,
+    ),
+    r'lastError': PropertySchema(
+      id: 4,
+      name: r'lastError',
+      type: IsarType.string,
+    ),
+    r'nextAttemptAt': PropertySchema(
+      id: 5,
+      name: r'nextAttemptAt',
+      type: IsarType.dateTime,
+    ),
+    r'note': PropertySchema(id: 6, name: r'note', type: IsarType.string),
+    r'productId': PropertySchema(
+      id: 7,
       name: r'productId',
       type: IsarType.long,
     ),
-    r'stockId': PropertySchema(id: 4, name: r'stockId', type: IsarType.long),
-    r'synced': PropertySchema(id: 5, name: r'synced', type: IsarType.bool),
-    r'type': PropertySchema(id: 6, name: r'type', type: IsarType.string),
+    r'stockId': PropertySchema(id: 8, name: r'stockId', type: IsarType.long),
+    r'synced': PropertySchema(id: 9, name: r'synced', type: IsarType.bool),
+    r'type': PropertySchema(id: 10, name: r'type', type: IsarType.string),
   },
 
   estimateSize: _stockAdjustmentOutboxEntityEstimateSize,
@@ -56,6 +72,12 @@ int _stockAdjustmentOutboxEntityEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.lastError;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.note.length * 3;
   bytesCount += 3 + object.type.length * 3;
   return bytesCount;
@@ -67,13 +89,17 @@ void _stockAdjustmentOutboxEntitySerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeLong(offsets[0], object.change);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeString(offsets[2], object.note);
-  writer.writeLong(offsets[3], object.productId);
-  writer.writeLong(offsets[4], object.stockId);
-  writer.writeBool(offsets[5], object.synced);
-  writer.writeString(offsets[6], object.type);
+  writer.writeLong(offsets[0], object.attempts);
+  writer.writeLong(offsets[1], object.change);
+  writer.writeDateTime(offsets[2], object.createdAt);
+  writer.writeDateTime(offsets[3], object.lastAttemptAt);
+  writer.writeString(offsets[4], object.lastError);
+  writer.writeDateTime(offsets[5], object.nextAttemptAt);
+  writer.writeString(offsets[6], object.note);
+  writer.writeLong(offsets[7], object.productId);
+  writer.writeLong(offsets[8], object.stockId);
+  writer.writeBool(offsets[9], object.synced);
+  writer.writeString(offsets[10], object.type);
 }
 
 StockAdjustmentOutboxEntity _stockAdjustmentOutboxEntityDeserialize(
@@ -83,14 +109,18 @@ StockAdjustmentOutboxEntity _stockAdjustmentOutboxEntityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = StockAdjustmentOutboxEntity();
-  object.change = reader.readLong(offsets[0]);
-  object.createdAt = reader.readDateTime(offsets[1]);
+  object.attempts = reader.readLong(offsets[0]);
+  object.change = reader.readLong(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[2]);
   object.id = id;
-  object.note = reader.readString(offsets[2]);
-  object.productId = reader.readLongOrNull(offsets[3]);
-  object.stockId = reader.readLong(offsets[4]);
-  object.synced = reader.readBool(offsets[5]);
-  object.type = reader.readString(offsets[6]);
+  object.lastAttemptAt = reader.readDateTimeOrNull(offsets[3]);
+  object.lastError = reader.readStringOrNull(offsets[4]);
+  object.nextAttemptAt = reader.readDateTimeOrNull(offsets[5]);
+  object.note = reader.readString(offsets[6]);
+  object.productId = reader.readLongOrNull(offsets[7]);
+  object.stockId = reader.readLong(offsets[8]);
+  object.synced = reader.readBool(offsets[9]);
+  object.type = reader.readString(offsets[10]);
   return object;
 }
 
@@ -104,16 +134,24 @@ P _stockAdjustmentOutboxEntityDeserializeProp<P>(
     case 0:
       return (reader.readLong(offset)) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
-    case 2:
-      return (reader.readString(offset)) as P;
-    case 3:
-      return (reader.readLongOrNull(offset)) as P;
-    case 4:
       return (reader.readLong(offset)) as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
+    case 3:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readLongOrNull(offset)) as P;
+    case 8:
+      return (reader.readLong(offset)) as P;
+    case 9:
+      return (reader.readBool(offset)) as P;
+    case 10:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -259,6 +297,77 @@ extension StockAdjustmentOutboxEntityQueryFilter
           StockAdjustmentOutboxEntity,
           QFilterCondition
         > {
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  attemptsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'attempts', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  attemptsGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'attempts',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  attemptsLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'attempts',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  attemptsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'attempts',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
   QueryBuilder<
     StockAdjustmentOutboxEntity,
     StockAdjustmentOutboxEntity,
@@ -463,6 +572,407 @@ extension StockAdjustmentOutboxEntityQueryFilter
       return query.addFilterCondition(
         FilterCondition.between(
           property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastAttemptAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastAttemptAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastAttemptAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastAttemptAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastAttemptAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastAttemptAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastAttemptAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastAttemptAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastError'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastError'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastError',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'lastError',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'lastError',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastError', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  lastErrorIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'lastError', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  nextAttemptAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'nextAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  nextAttemptAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'nextAttemptAt'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  nextAttemptAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'nextAttemptAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  nextAttemptAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'nextAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  nextAttemptAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'nextAttemptAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterFilterCondition
+  >
+  nextAttemptAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'nextAttemptAt',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -1044,6 +1554,28 @@ extension StockAdjustmentOutboxEntityQuerySortBy
     StockAdjustmentOutboxEntity,
     QAfterSortBy
   >
+  sortByAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  sortByAttemptsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
   sortByChange() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'change', Sort.asc);
@@ -1080,6 +1612,72 @@ extension StockAdjustmentOutboxEntityQuerySortBy
   sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  sortByLastAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  sortByLastAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  sortByLastError() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastError', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  sortByLastErrorDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  sortByNextAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  sortByNextAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.desc);
     });
   }
 
@@ -1206,6 +1804,28 @@ extension StockAdjustmentOutboxEntityQuerySortThenBy
     StockAdjustmentOutboxEntity,
     QAfterSortBy
   >
+  thenByAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  thenByAttemptsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'attempts', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
   thenByChange() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'change', Sort.asc);
@@ -1264,6 +1884,72 @@ extension StockAdjustmentOutboxEntityQuerySortThenBy
   thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  thenByLastAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  thenByLastAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastAttemptAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  thenByLastError() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastError', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  thenByLastErrorDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastError', Sort.desc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  thenByNextAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QAfterSortBy
+  >
+  thenByNextAttemptAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextAttemptAt', Sort.desc);
     });
   }
 
@@ -1390,6 +2076,17 @@ extension StockAdjustmentOutboxEntityQueryWhereDistinct
     StockAdjustmentOutboxEntity,
     QDistinct
   >
+  distinctByAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'attempts');
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QDistinct
+  >
   distinctByChange() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'change');
@@ -1404,6 +2101,39 @@ extension StockAdjustmentOutboxEntityQueryWhereDistinct
   distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QDistinct
+  >
+  distinctByLastAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastAttemptAt');
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QDistinct
+  >
+  distinctByLastError({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastError', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<
+    StockAdjustmentOutboxEntity,
+    StockAdjustmentOutboxEntity,
+    QDistinct
+  >
+  distinctByNextAttemptAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nextAttemptAt');
     });
   }
 
@@ -1478,6 +2208,13 @@ extension StockAdjustmentOutboxEntityQueryProperty
   }
 
   QueryBuilder<StockAdjustmentOutboxEntity, int, QQueryOperations>
+  attemptsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'attempts');
+    });
+  }
+
+  QueryBuilder<StockAdjustmentOutboxEntity, int, QQueryOperations>
   changeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'change');
@@ -1488,6 +2225,27 @@ extension StockAdjustmentOutboxEntityQueryProperty
   createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
+    });
+  }
+
+  QueryBuilder<StockAdjustmentOutboxEntity, DateTime?, QQueryOperations>
+  lastAttemptAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastAttemptAt');
+    });
+  }
+
+  QueryBuilder<StockAdjustmentOutboxEntity, String?, QQueryOperations>
+  lastErrorProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastError');
+    });
+  }
+
+  QueryBuilder<StockAdjustmentOutboxEntity, DateTime?, QQueryOperations>
+  nextAttemptAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nextAttemptAt');
     });
   }
 
